@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "Kiroheroes",
-    "slug": "kiroheroes",
+    "name": "StickSplit",
+    "slug": "sticksplit",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "scheme": "kiroheroes",
+    "scheme": "sticksplit",
     "updates": {
       "enabled": true,
       "fallbackToCacheTimeout": 3000
@@ -22,7 +22,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.kevinbeltran.kiroheroes",
+      "bundleIdentifier": "com.sticksplit",
       "infoPlist": {
         "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to record drumming practice videos.",
         "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to select drumming practice videos.",
@@ -36,7 +36,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.kevinbeltran.kiroheroes",
+      "package": "com.sticksplit",
       "edgeToEdgeEnabled": true,
       "permissions": [
         "android.permission.CAMERA",
