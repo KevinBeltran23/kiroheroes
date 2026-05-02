@@ -89,7 +89,7 @@ function HistoryScreen() {
               <Text style={s.cardTitle}>{labels[item.exerciseType]}</Text>
               <Text style={s.meta}>
                 {item.status}
-                {item.tempoTarget ? ` · ${item.tempoTarget} BPM` : ''}
+                {item.tempoTarget ? ` - ${item.tempoTarget} BPM` : ''}
               </Text>
             </TouchableOpacity>
           )}

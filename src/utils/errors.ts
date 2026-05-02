@@ -1,4 +1,3 @@
-/** Error utility — type guard for errors with an error code (e.g. Firebase). */
 export const isErrorWithCode = (
   error: unknown,
 ): error is Error & { code: string } => {

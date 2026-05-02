@@ -1,7 +1,3 @@
-/**
- * AppNavigator — root navigator.
- * Gate: authenticated + accepted terms → Main tabs; otherwise → Auth screens.
- */
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './types';
@@ -32,16 +28,13 @@ const AppNavigator = () => {
       initialRouteName={initialRouteName}
       screenOptions={{ headerShown: false }}
     >
-      {/* Auth + terms screens */}
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="SignUp" component={SignUpScreen} />
       <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
       <Stack.Screen name="TermsAcceptance" component={TermsAcceptanceScreen} />
-      {/* Legal info — accessible from any state */}
       <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
       <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
       <Stack.Screen name="About" component={AboutScreen} />
-      {/* Authenticated main app */}
       <Stack.Screen name="Main" component={MainNavigator} />
       <Stack.Screen name="SessionStatus" component={SessionStatusScreen} />
       <Stack.Screen name="Results" component={ResultsScreen} />

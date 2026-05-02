@@ -1,159 +1,56 @@
-﻿import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
-import { useColors } from '../../hooks/useColors';
+import React from 'react';
+import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Icon from '@expo/vector-icons/MaterialCommunityIcons';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import Button from '../../components/common/Button';
+import { useColors } from '../../hooks/useColors';
 import { useResponsiveStyles } from '../../hooks/useResponsiveStyles';
+import { RootStackParamList } from '../../navigation/types';
 
 function PrivacyPolicyScreen() {
   const colors = useColors();
-  const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
-  const { scaleHeight, scaleWidth, proportionalSize, scaleFont } =
-    useResponsiveStyles();
-
-  const dynamicStyles = StyleSheet.create({
-    screenContainer: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    header: {
-      backgroundColor: colors.primary,
-      paddingHorizontal: scaleWidth(15),
-      paddingTop: insets.top + scaleHeight(10),
-      paddingBottom: scaleHeight(15),
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    headerLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    headerText: {
-      fontSize: scaleFont(20),
-      fontWeight: 'bold',
-      color: colors.textInverse,
-      marginLeft: scaleWidth(10),
-    },
-    container: {
-      flexGrow: 1,
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { scaleHeight, proportionalSize, scaleFont } = useResponsiveStyles();
+  const s = StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: {
       padding: proportionalSize(20),
-      backgroundColor: colors.background,
-      paddingBottom: scaleHeight(50),
-      paddingHorizontal: scaleWidth(20),
+      paddingTop: scaleHeight(58),
+      paddingBottom: scaleHeight(60),
     },
-    sectionTitle: {
-      fontSize: scaleFont(18),
-      fontWeight: 'bold',
+    title: {
       color: colors.textPrimary,
-      marginTop: scaleHeight(20),
-      marginBottom: scaleHeight(8),
+      fontSize: scaleFont(28),
+      fontWeight: '800',
+      marginBottom: scaleHeight(16),
     },
-    paragraph: {
-      fontSize: scaleFont(16),
+    body: {
       color: colors.textSecondary,
-      marginBottom: scaleHeight(12),
+      fontSize: scaleFont(16),
       lineHeight: scaleFont(24),
+      marginBottom: scaleHeight(14),
     },
-    endIndicator: {
-      borderTopWidth: proportionalSize(1),
-      borderTopColor: colors.border,
-      marginVertical: scaleHeight(30),
-      width: '80%',
-      alignSelf: 'center',
-    },
+    button: { marginTop: scaleHeight(16) },
   });
 
   return (
-    <View style={dynamicStyles.screenContainer}>
-      <View style={dynamicStyles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={dynamicStyles.headerLeft}
-        >
-          <Icon
-            name="arrow-left"
-            size={scaleFont(24)}
-            color={colors.textInverse}
-          />
-          <Text style={dynamicStyles.headerText}>Privacy Policy</Text>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView contentContainerStyle={dynamicStyles.container}>
-        <Text style={dynamicStyles.sectionTitle}>1. Introduction</Text>
-        <Text style={dynamicStyles.paragraph}>
-          This Privacy Policy describes how SURP collects, uses, and shares your
-          personal information when you use our mobile application.
-        </Text>
-
-        <Text style={dynamicStyles.sectionTitle}>
-          2. Information We Collect
-        </Text>
-        <Text style={dynamicStyles.paragraph}>
-          We collect information you provide directly to us, such as when you
-          create an account (email, display name), upload media (images,
-          videos), or submit location data. We may also collect device
-          information and usage data.
-        </Text>
-
-        <Text style={dynamicStyles.sectionTitle}>
-          3. How We Use Your Information
-        </Text>
-        <Text style={dynamicStyles.paragraph}>
-          We use the information collected to provide, maintain, and improve our
-          services, personalize your experience, and for security purposes. This
-          includes displaying accessibility information, managing user accounts,
-          and facilitating media uploads.
-        </Text>
-
-        <Text style={dynamicStyles.sectionTitle}>
-          4. Sharing of Information
-        </Text>
-        <Text style={dynamicStyles.paragraph}>
-          We do not share your personal information with third parties except as
-          necessary to provide our services (e.g., Firebase for authentication
-          and storage), or as required by law.
-        </Text>
-
-        <Text style={dynamicStyles.sectionTitle}>5. Data Security</Text>
-        <Text style={dynamicStyles.paragraph}>
-          We take reasonable measures to protect your personal information from
-          unauthorized access, alteration, disclosure, or destruction. However,
-          no internet transmission is entirely secure.
-        </Text>
-
-        <Text style={dynamicStyles.sectionTitle}>6. Your Choices</Text>
-        <Text style={dynamicStyles.paragraph}>
-          You can update your profile information through the app settings. You
-          may also be able to disable certain data collection features in your
-          device settings.
-        </Text>
-
-        <Text style={dynamicStyles.sectionTitle}>
-          7. Changes to This Policy
-        </Text>
-        <Text style={dynamicStyles.paragraph}>
-          We may update this Privacy Policy from time to time. We will notify
-          you of any changes by posting the new policy within the application.
-        </Text>
-
-        <Text style={dynamicStyles.sectionTitle}>8. Contact Us</Text>
-        <Text style={dynamicStyles.paragraph}>
-          If you have any questions about this Privacy Policy, please contact us
-          at support@surp.com.
-        </Text>
-
-        <View style={dynamicStyles.endIndicator} />
-      </ScrollView>
-    </View>
+    <ScrollView style={s.container} contentContainerStyle={s.content}>
+      <Text style={s.title}>Privacy Policy</Text>
+      <Text style={s.body}>
+        Kiroheroes stores account profile data, submitted practice session
+        metadata, uploaded videos, and generated analysis artifacts in Firebase.
+      </Text>
+      <Text style={s.body}>
+        Videos are used to generate motion consistency feedback for the session
+        you submit. The MVP does not train a custom model from your clips.
+      </Text>
+      <Text style={s.body}>
+        Analysis output should be treated as software-generated motion
+        observations, not expert instruction or medical assessment.
+      </Text>
+      <Button label="Back" onPress={() => navigation.goBack()} style={s.button} />
+    </ScrollView>
   );
 }
 

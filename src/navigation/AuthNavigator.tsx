@@ -1,11 +1,6 @@
-/**
- * AuthNavigator — Login / SignUp / ForgotPassword / TermsAcceptance stack.
- * Imported by AppNavigator as the unauthenticated branch.
- */
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './types';
-
 import LoginScreen from '../screens/auth/LoginScreen';
 import SignUpScreen from '../screens/auth/SignUpScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';

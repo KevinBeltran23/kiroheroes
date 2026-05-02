@@ -139,7 +139,7 @@ function HomeScreen() {
               <Text style={s.cardTitle}>{exerciseLabels[item.exerciseType]}</Text>
               <Text style={s.cardMeta}>
                 {formatStatus(item.status)}
-                {item.tempoTarget ? ` · ${item.tempoTarget} BPM target` : ''}
+                {item.tempoTarget ? ` - ${item.tempoTarget} BPM target` : ''}
               </Text>
             </TouchableOpacity>
           )}

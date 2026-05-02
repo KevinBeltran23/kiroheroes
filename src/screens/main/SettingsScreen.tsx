@@ -170,7 +170,7 @@ function ProfileSection({
           <Text style={s.name}>{user?.displayName || 'Drummer'}</Text>
           <Text style={s.email}>{user?.email}</Text>
           <Text style={s.email}>
-            {user?.skillLevel || 'beginner'} · {user?.handedness || 'right'} handed
+            {user?.skillLevel || 'beginner'} - {user?.handedness || 'right'} handed
           </Text>
           <Button
             label="Edit Profile"

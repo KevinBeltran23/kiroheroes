@@ -1,120 +1,60 @@
-﻿import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
-import { useColors } from '../../hooks/useColors';
+import React from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
+import Button from '../../components/common/Button';
+import { useColors } from '../../hooks/useColors';
 import { useResponsiveStyles } from '../../hooks/useResponsiveStyles';
+import { RootStackParamList } from '../../navigation/types';
 
 function AboutScreen() {
   const colors = useColors();
-  const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
-  const { scaleHeight, scaleWidth, proportionalSize, scaleFont } =
-    useResponsiveStyles();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { scaleHeight, proportionalSize, scaleFont } = useResponsiveStyles();
 
-  const dynamicStyles = StyleSheet.create({
-    screenContainer: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    header: {
-      backgroundColor: colors.primary,
-      paddingHorizontal: scaleWidth(15),
-      paddingTop: insets.top + scaleHeight(10),
-      paddingBottom: scaleHeight(15),
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    headerLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    headerText: {
-      fontSize: scaleFont(20),
-      fontWeight: 'bold',
-      color: colors.textInverse,
-      marginLeft: scaleWidth(10),
-    },
-    container: {
-      flexGrow: 1,
+  const s = StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: {
       padding: proportionalSize(20),
-      backgroundColor: colors.background,
-      alignItems: 'center',
-      paddingBottom: scaleHeight(50),
-      paddingHorizontal: scaleWidth(20),
+      paddingTop: scaleHeight(58),
+      paddingBottom: scaleHeight(60),
     },
-    paragraph: {
-      fontSize: scaleFont(16),
-      color: colors.textSecondary,
-      marginBottom: scaleHeight(12),
-      lineHeight: scaleFont(24),
+    icon: { alignSelf: 'center', marginBottom: scaleHeight(16) },
+    title: {
+      color: colors.textPrimary,
+      fontSize: scaleFont(28),
+      fontWeight: '800',
       textAlign: 'center',
-      paddingHorizontal: scaleWidth(10),
+      marginBottom: scaleHeight(12),
     },
-    versionText: {
-      fontSize: scaleFont(14),
-      color: colors.textTertiary,
-      marginTop: scaleHeight(25),
-      marginBottom: scaleHeight(5),
+    body: {
+      color: colors.textSecondary,
+      fontSize: scaleFont(16),
+      lineHeight: scaleFont(24),
+      marginBottom: scaleHeight(14),
     },
-    endIndicator: {
-      borderTopWidth: proportionalSize(1),
-      borderTopColor: colors.border,
-      marginVertical: scaleHeight(30),
-      width: '80%',
-      alignSelf: 'center',
-    },
+    button: { marginTop: scaleHeight(16) },
   });
 
   return (
-    <View style={dynamicStyles.screenContainer}>
-      <View style={dynamicStyles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={dynamicStyles.headerLeft}
-        >
-          <Icon
-            name="arrow-left"
-            size={scaleFont(24)}
-            color={colors.textInverse}
-          />
-          <Text style={dynamicStyles.headerText}>About</Text>
-        </TouchableOpacity>
+    <ScrollView style={s.container} contentContainerStyle={s.content}>
+      <View style={s.icon}>
+        <Icon name="metronome" color={colors.primary} size={scaleFont(44)} />
       </View>
-      <ScrollView contentContainerStyle={dynamicStyles.container}>
-        <Text style={dynamicStyles.paragraph}>
-          SURP Accessibility Tracker is a mobile application designed to empower
-          users to easily discover, share, and manage accessibility information
-          for various locations. Our goal is to foster a more inclusive
-          environment by providing a comprehensive platform for crowd-sourced
-          accessibility data.
-        </Text>
-        <Text style={dynamicStyles.paragraph}>
-          Whether you are looking for wheelchair-accessible ramps,
-          sensory-friendly environments, or other specific accessibility
-          features, SURP aims to be your go-to resource. We believe that
-          everyone deserves equal access, and by collaborating as a community,
-          we can make the world a more navigable place for all.
-        </Text>
-        <Text style={dynamicStyles.paragraph}>
-          This application is continuously being improved with new features and
-          enhancements based on user feedback and evolving accessibility
-          standards. Thank you for being a part of the SURP community and
-          contributing to a more accessible future!
-        </Text>
-        <Text style={dynamicStyles.versionText}>Version 1.0.0</Text>
-        <Text style={dynamicStyles.versionText}>Â© 2024 SURP Team</Text>
-
-        <View style={dynamicStyles.endIndicator} />
-      </ScrollView>
-    </View>
+      <Text style={s.title}>About Kiroheroes</Text>
+      <Text style={s.body}>
+        Kiroheroes is a post-processing drumming technique analysis app for short
+        pad or snare practice clips.
+      </Text>
+      <Text style={s.body}>
+        The app focuses on motion consistency, timing, left/right symmetry,
+        stroke-height repeatability, and posture drift. It does not provide
+        medical advice or claim expert diagnosis.
+      </Text>
+      <Button label="Back" onPress={() => navigation.goBack()} style={s.button} />
+    </ScrollView>
   );
 }
 

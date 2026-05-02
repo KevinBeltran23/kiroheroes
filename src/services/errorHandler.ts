@@ -28,7 +28,7 @@ const FIRESTORE_ERRORS: Record<string, string> = {
 };
 
 const STORAGE_ERRORS: Record<string, string> = {
-  'storage/unauthorized': 'Upload failed — please sign in and try again.',
+  'storage/unauthorized': 'Upload failed - please sign in and try again.',
   'storage/canceled': 'Upload was cancelled.',
   'storage/quota-exceeded': 'Storage quota exceeded. Contact support.',
   'storage/object-not-found': 'File not found.',
@@ -40,16 +40,11 @@ const ALL_ERRORS: Record<string, string> = {
   ...STORAGE_ERRORS,
 };
 
-/**
- * Maps a known Firebase/app error to a user-friendly string.
- * Never exposes internal error codes or stack traces to the user.
- */
 export function getUserFacingMessage(error: unknown): string {
   if (isErrorWithCode(error)) {
     return ALL_ERRORS[error.code] ?? 'Something went wrong. Please try again.';
   }
   if (error instanceof Error && error.message) {
-    // Don't expose the raw message — just log it and return generic
     console.error('[getUserFacingMessage] Unmapped error:', error.message);
   }
   return 'Something went wrong. Please try again.';
