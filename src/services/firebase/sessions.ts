@@ -7,7 +7,6 @@ import {
   getDocs,
   getFirestore,
   limit,
-  orderBy,
   query,
   serverTimestamp,
   updateDoc,
@@ -33,12 +32,18 @@ export async function createSession(input: {
   exerciseType: ExerciseType;
   tempoTarget?: number | null;
   notes?: string;
+  projectName?: string;
+  drumHeightInches?: number | null;
+  cameraAngle?: AnalysisSession['cameraAngle'];
 }): Promise<AnalysisSession> {
   const docRef = await addDoc(collection(db, SESSIONS_COLLECTION), {
     userId: input.userId,
     exerciseType: input.exerciseType,
     tempoTarget: input.tempoTarget ?? null,
     notes: input.notes ?? '',
+    projectName: input.projectName ?? '',
+    drumHeightInches: input.drumHeightInches ?? null,
+    cameraAngle: input.cameraAngle ?? 'front',
     rawVideoPath: null,
     latestJobId: null,
     status: 'draft',
@@ -52,6 +57,9 @@ export async function createSession(input: {
     exerciseType: input.exerciseType,
     tempoTarget: input.tempoTarget ?? null,
     notes: input.notes ?? '',
+    projectName: input.projectName ?? '',
+    drumHeightInches: input.drumHeightInches ?? null,
+    cameraAngle: input.cameraAngle ?? 'front',
     rawVideoPath: null,
     latestJobId: null,
     status: 'draft',
@@ -73,11 +81,14 @@ export async function listUserSessions(
     query(
       collection(db, SESSIONS_COLLECTION),
       where('userId', '==', userId),
-      orderBy('createdAt', 'desc'),
       limit(limitCount),
     ),
   );
-  return snapshot.docs.map(mapSessionDoc);
+  return snapshot.docs.map(mapSessionDoc).sort((a: AnalysisSession, b: AnalysisSession) => {
+    const left = a.createdAt?.toMillis?.() ?? 0;
+    const right = b.createdAt?.toMillis?.() ?? 0;
+    return right - left;
+  });
 }
 
 export async function updateSession(

@@ -23,6 +23,9 @@ export function useCreateAnalysisSession() {
       exerciseType: ExerciseType;
       tempoTarget?: number | null;
       notes?: string;
+      projectName?: string;
+      drumHeightInches?: number | null;
+      cameraAngle?: 'front' | 'front_left' | 'front_right' | 'side';
       videoUri: string;
     }) => {
       if (!authUser) {
@@ -34,6 +37,9 @@ export function useCreateAnalysisSession() {
         exerciseType: input.exerciseType,
         tempoTarget: input.tempoTarget ?? null,
         notes: input.notes,
+        projectName: input.projectName,
+        drumHeightInches: input.drumHeightInches,
+        cameraAngle: input.cameraAngle,
       });
 
       await updateSession(session.id, { status: 'uploading' });

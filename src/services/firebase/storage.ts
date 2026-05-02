@@ -32,3 +32,10 @@ export async function uploadSessionVideo(input: {
     name: fileName,
   };
 }
+
+export async function getStorageDownloadUrl(path?: string | null): Promise<string | null> {
+  if (!path) {
+    return null;
+  }
+  return getDownloadURL(ref(storage, path));
+}

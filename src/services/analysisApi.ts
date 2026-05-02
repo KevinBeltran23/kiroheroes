@@ -10,10 +10,15 @@ export async function requestAnalysis(input: {
   exerciseType: ExerciseType;
 }) {
   if (!ANALYSIS_API_URL) {
-    return { skipped: true };
+    throw new Error(
+      'Missing EXPO_PUBLIC_ANALYSIS_API_URL. Restart Metro after setting .env.local or rebuild with EAS env vars.',
+    );
   }
 
-  const response = await fetch(`${ANALYSIS_API_URL.replace(/\/$/, '')}/analyze`, {
+  const analyzeUrl = `${ANALYSIS_API_URL.replace(/\/$/, '')}/analyze`;
+  console.log('[analysis-api] POST', analyzeUrl);
+
+  const response = await fetch(analyzeUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),

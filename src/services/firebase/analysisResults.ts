@@ -6,7 +6,6 @@ import {
   getFirestore,
   limit,
   onSnapshot,
-  orderBy,
   query,
   serverTimestamp,
   where,
@@ -25,14 +24,15 @@ function mapResultDoc(
 export async function getAnalysisResultBySession(
   sessionId: string,
 ): Promise<AnalysisResult | null> {
+  console.log('[analysis-results] fetching for session', sessionId);
   const snapshot = await getDocs(
     query(
       collection(db, ANALYSIS_RESULTS_COLLECTION),
       where('sessionId', '==', sessionId),
-      orderBy('createdAt', 'desc'),
       limit(1),
     ),
   );
+  console.log('[analysis-results] fetch count', snapshot.docs.length);
   return snapshot.empty ? null : mapResultDoc(snapshot.docs[0]);
 }
 
@@ -45,11 +45,20 @@ export function subscribeToAnalysisResult(
     query(
       collection(db, ANALYSIS_RESULTS_COLLECTION),
       where('sessionId', '==', sessionId),
-      orderBy('createdAt', 'desc'),
       limit(1),
     ),
-    snapshot => onNext(snapshot.empty ? null : mapResultDoc(snapshot.docs[0])),
-    error => onError?.(error),
+    snapshot => {
+      console.log(
+        '[analysis-results] live count',
+        sessionId,
+        snapshot.docs.length,
+      );
+      onNext(snapshot.empty ? null : mapResultDoc(snapshot.docs[0]));
+    },
+    error => {
+      console.error('[analysis-results] live error', error);
+      onError?.(error);
+    },
   );
 }
 
@@ -126,6 +135,32 @@ export async function createMockAnalysisResult(input: {
       rightHandMotion: [45, 59, 56, 72, 70, 78, 76, 81],
       timingDrift: [0, 1, 1, 3, 5, 6, 8, 9],
       consistency: [88, 86, 84, 82, 79, 76, 74, 72],
+      fingerUsage: [36, 38, 34, 31, 33, 37, 35, 32, 30, 34, 36, 35],
+      wristUsage: [62, 68, 70, 66, 72, 69, 67, 71, 74, 70, 68, 69],
+      armUsage: [16, 12, 14, 18, 13, 15, 17, 14, 12, 16, 18, 15],
+      leftWristBreak: [18, 22, 25, 21, 26, 24, 23, 27],
+      rightWristBreak: [10, 13, 15, 12, 16, 14, 13, 15],
+    },
+    muscleUsage: {
+      finger: 28,
+      wrist: 52,
+      arm: 20,
+    },
+    approach: {
+      category: 'Arm-Heavy',
+      confidence: 67,
+      summary:
+        "You're using a lot of arm. Try focusing on smaller motions from the wrist to improve efficiency and control.",
+      scores: {
+        'Arm-Heavy': 67,
+        'Fulcrum Lift': 49,
+        'Lead by the Bead': 44,
+        'Wrist Break': 58,
+      },
+    },
+    angles: {
+      left: { bicep: 42, forearm: 132, wristBreak: 24 },
+      right: { bicep: 35, forearm: 146, wristBreak: 14 },
     },
     artifactPaths: {},
     isMock: true,

@@ -47,7 +47,7 @@ service cloud.firestore {
         && request.resource.data.userId == request.auth.uid
         && ownsExistingSession(request.resource.data.sessionId);
       allow read: if signedIn()
-        && resource.data.userId == request.auth.uid;
+        && ownsExistingSession(resource.data.sessionId);
       allow update, delete: if false;
     }
 
