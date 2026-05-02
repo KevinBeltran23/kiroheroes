@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import MediaUploader from '../../components/media/MediaUploader';
 import Button from '../../components/common/Button';
 import { useColors } from '../../hooks/useColors';
@@ -42,6 +43,9 @@ const exercises: Array<{ value: ExerciseType; label: string; description: string
 function NewSessionScreen() {
   const [exerciseType, setExerciseType] = useState<ExerciseType>('single_strokes');
   const [tempoTarget, setTempoTarget] = useState('');
+  const [projectName, setProjectName] = useState('');
+  const [drumHeightInches, setDrumHeightInches] = useState('36');
+  const [cameraAngle, setCameraAngle] = useState<'front' | 'front_left' | 'front_right' | 'side'>('front');
   const [notes, setNotes] = useState('');
   const [videoUri, setVideoUri] = useState<string | null>(null);
   const colors = useColors();
@@ -61,11 +65,19 @@ function NewSessionScreen() {
       Alert.alert('Tempo target', 'Enter a valid BPM target or leave it blank.');
       return;
     }
+    const parsedHeight = drumHeightInches.trim() ? Number(drumHeightInches) : null;
+    if (parsedHeight !== null && (!Number.isFinite(parsedHeight) || parsedHeight < 20)) {
+      Alert.alert('Drum height', 'Enter a realistic drum height in inches.');
+      return;
+    }
 
     try {
       const result = await createSession.mutateAsync({
         exerciseType,
         tempoTarget: parsedTempo,
+        projectName: projectName.trim(),
+        drumHeightInches: parsedHeight,
+        cameraAngle,
         notes,
         videoUri,
       });
@@ -134,6 +146,35 @@ function NewSessionScreen() {
       fontSize: scaleFont(15),
     },
     notes: { minHeight: scaleHeight(86), textAlignVertical: 'top' },
+    segmentedRow: {
+      flexDirection: 'row',
+      gap: proportionalSize(8),
+      flexWrap: 'wrap',
+    },
+    segment: {
+      flexGrow: 1,
+      minWidth: '47%',
+      backgroundColor: colors.backgroundSecondary,
+      borderColor: colors.borderLight,
+      borderWidth: proportionalSize(1),
+      borderRadius: proportionalSize(8),
+      paddingVertical: scaleHeight(11),
+      paddingHorizontal: proportionalSize(10),
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: proportionalSize(6),
+    },
+    segmentActive: {
+      borderColor: '#F2B705',
+      backgroundColor: '#161A1F',
+    },
+    segmentText: {
+      color: colors.textSecondary,
+      fontSize: scaleFont(13),
+      fontWeight: '700',
+    },
+    segmentTextActive: { color: '#F2B705' },
     button: { marginTop: scaleHeight(22) },
   });
 
@@ -143,11 +184,20 @@ function NewSessionScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={s.content}>
-        <Text style={s.title}>Analyze a clip</Text>
+        <Text style={s.title}>New project</Text>
         <Text style={s.helper}>
-          Keep the camera angle controlled and make sure both hands, wrists,
-          shoulders, and the pad/snare are visible.
+          Set the drum height and camera angle before recording so MediaPipe can
+          consistently see the shoulders, elbows, wrists, hands, and sticks.
         </Text>
+
+        <Text style={s.label}>Project name</Text>
+        <TextInput
+          value={projectName}
+          onChangeText={setProjectName}
+          placeholder="Front Ensemble Block - Day 4"
+          placeholderTextColor={colors.textTertiary}
+          style={s.input}
+        />
 
         <Text style={s.label}>Exercise</Text>
         {exercises.map(exercise => (
@@ -174,6 +224,44 @@ function NewSessionScreen() {
           style={s.input}
         />
 
+        <Text style={s.label}>Drum height</Text>
+        <TextInput
+          value={drumHeightInches}
+          onChangeText={setDrumHeightInches}
+          placeholder="Height in inches"
+          placeholderTextColor={colors.textTertiary}
+          keyboardType="number-pad"
+          style={s.input}
+        />
+
+        <Text style={s.label}>Camera angle</Text>
+        <View style={s.segmentedRow}>
+          {[
+            ['front', 'Front', 'camera'],
+            ['front_left', 'Front L', 'camera-front-variant'],
+            ['front_right', 'Front R', 'camera-front'],
+            ['side', 'Side', 'camera-switch'],
+          ].map(([value, label, icon]) => {
+            const active = value === cameraAngle;
+            return (
+              <TouchableOpacity
+                key={value}
+                style={[s.segment, active ? s.segmentActive : null]}
+                onPress={() => setCameraAngle(value as typeof cameraAngle)}
+              >
+                <Icon
+                  name={icon as React.ComponentProps<typeof Icon>['name']}
+                  size={proportionalSize(17)}
+                  color={active ? '#F2B705' : colors.textSecondary}
+                />
+                <Text style={[s.segmentText, active ? s.segmentTextActive : null]}>
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
         <Text style={s.label}>Practice clip</Text>
         <MediaUploader selectedUri={videoUri} onVideoSelected={setVideoUri} />
 
@@ -188,7 +276,7 @@ function NewSessionScreen() {
         />
 
         <Button
-          label={createSession.isPending ? 'Creating Analysis...' : 'Upload and Analyze'}
+          label={createSession.isPending ? 'Processing Setup...' : 'Save Rep and Analyze'}
           onPress={submit}
           disabled={createSession.isPending}
           style={s.button}

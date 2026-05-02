@@ -10,6 +10,12 @@ def extract_pose_trajectories(frames: list[np.ndarray]) -> dict[str, list[tuple[
     keys = {
         "left_wrist": mp.solutions.pose.PoseLandmark.LEFT_WRIST,
         "right_wrist": mp.solutions.pose.PoseLandmark.RIGHT_WRIST,
+        "left_index": mp.solutions.pose.PoseLandmark.LEFT_INDEX,
+        "right_index": mp.solutions.pose.PoseLandmark.RIGHT_INDEX,
+        "left_pinky": mp.solutions.pose.PoseLandmark.LEFT_PINKY,
+        "right_pinky": mp.solutions.pose.PoseLandmark.RIGHT_PINKY,
+        "left_thumb": mp.solutions.pose.PoseLandmark.LEFT_THUMB,
+        "right_thumb": mp.solutions.pose.PoseLandmark.RIGHT_THUMB,
         "left_elbow": mp.solutions.pose.PoseLandmark.LEFT_ELBOW,
         "right_elbow": mp.solutions.pose.PoseLandmark.RIGHT_ELBOW,
         "left_shoulder": mp.solutions.pose.PoseLandmark.LEFT_SHOULDER,

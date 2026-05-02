@@ -61,6 +61,9 @@ export interface AnalysisSession {
   rawVideoPath?: string | null;
   status: SessionStatus;
   notes?: string;
+  projectName?: string;
+  drumHeightInches?: number | null;
+  cameraAngle?: 'front' | 'front_left' | 'front_right' | 'side';
   processorVersion?: string;
   latestJobId?: string | null;
   errorMessage?: string | null;
@@ -94,6 +97,34 @@ export interface AnalysisResult {
     rightHandMotion: number[];
     timingDrift: number[];
     consistency: number[];
+    fingerUsage?: number[];
+    wristUsage?: number[];
+    armUsage?: number[];
+    leftWristBreak?: number[];
+    rightWristBreak?: number[];
+  };
+  muscleUsage?: {
+    finger: number;
+    wrist: number;
+    arm: number;
+  };
+  approach?: {
+    category: 'Arm-Heavy' | 'Fulcrum Lift' | 'Lead by the Bead' | 'Wrist Break';
+    confidence: number;
+    summary: string;
+    scores?: Record<string, number>;
+  };
+  angles?: {
+    left?: {
+      bicep: number;
+      forearm: number;
+      wristBreak: number;
+    };
+    right?: {
+      bicep: number;
+      forearm: number;
+      wristBreak: number;
+    };
   };
   artifactPaths?: {
     overlayVideoPath?: string | null;

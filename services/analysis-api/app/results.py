@@ -65,11 +65,35 @@ def shape_result(metrics: dict, *, session_id: str, user_id: str, thumbnail_path
             }
         )
 
+    approach = metrics.get("approach", {})
+    muscle_usage = metrics.get("muscleUsage", {"finger": 0, "wrist": 0, "arm": 0})
+
     return {
         "sessionId": session_id,
         "userId": user_id,
         "summaryScores": scores,
         "metrics": [
+            {
+                "id": "finger_usage",
+                "label": "Finger",
+                "value": muscle_usage.get("finger", 0),
+                "unit": "%",
+                "description": "Estimated contribution from hand spread changes.",
+            },
+            {
+                "id": "wrist_usage",
+                "label": "Wrist",
+                "value": muscle_usage.get("wrist", 0),
+                "unit": "%",
+                "description": "Estimated contribution from wrist break angle changes.",
+            },
+            {
+                "id": "arm_usage",
+                "label": "Arm",
+                "value": muscle_usage.get("arm", 0),
+                "unit": "%",
+                "description": "Estimated contribution from shoulder and elbow angle changes.",
+            },
             {
                 "id": "timing_variation",
                 "label": "Timing variation",
@@ -106,6 +130,14 @@ def shape_result(metrics: dict, *, session_id: str, user_id: str, thumbnail_path
                 round(scores["symmetry"], 1),
                 round(scores["postureStability"], 1),
             ],
+            "fingerUsage": metrics.get("frameMetrics", {}).get("finger", []),
+            "wristUsage": metrics.get("frameMetrics", {}).get("wrist", []),
+            "armUsage": metrics.get("frameMetrics", {}).get("arm", []),
+            "leftWristBreak": metrics.get("frameMetrics", {}).get("leftWristBreak", []),
+            "rightWristBreak": metrics.get("frameMetrics", {}).get("rightWristBreak", []),
         },
+        "muscleUsage": muscle_usage,
+        "approach": approach,
+        "angles": metrics.get("angles", {}),
         "artifactPaths": {"thumbnailPath": thumbnail_path},
     }

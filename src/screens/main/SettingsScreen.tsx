@@ -39,8 +39,8 @@ function ProfileSection({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [displayName, setDisplayName] = useState(user?.displayName || '');
-  const [skillLevel, setSkillLevel] = useState(user?.skillLevel || 'beginner');
-  const [handedness, setHandedness] = useState(user?.handedness || 'right');
+  const [skillLevel, setSkillLevel] = useState<string>(user?.skillLevel || 'beginner');
+  const [handedness, setHandedness] = useState<string>(user?.handedness || 'right');
   const colors = useColors();
   const { scaleHeight, scaleWidth, proportionalSize, scaleFont } =
     useResponsiveStyles();
