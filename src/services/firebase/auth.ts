@@ -14,7 +14,7 @@ import {
 // Must be called before any GoogleSignin methods
 GoogleSignin.configure({
   webClientId:
-    '703962492488-q98nua8ure5o3h02fu78i8eh8d3g0okv.apps.googleusercontent.com',
+    '662576957604-6bhubvif311r4v63ttfot8i4fnmshrds.apps.googleusercontent.com',
 });
 
 const auth = getAuth();
