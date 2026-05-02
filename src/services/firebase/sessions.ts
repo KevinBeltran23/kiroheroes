@@ -7,7 +7,6 @@ import {
   getDocs,
   getFirestore,
   limit,
-  orderBy,
   query,
   serverTimestamp,
   updateDoc,
@@ -73,11 +72,14 @@ export async function listUserSessions(
     query(
       collection(db, SESSIONS_COLLECTION),
       where('userId', '==', userId),
-      orderBy('createdAt', 'desc'),
       limit(limitCount),
     ),
   );
-  return snapshot.docs.map(mapSessionDoc);
+  return snapshot.docs.map(mapSessionDoc).sort((a, b) => {
+    const left = a.createdAt?.toMillis?.() ?? 0;
+    const right = b.createdAt?.toMillis?.() ?? 0;
+    return right - left;
+  });
 }
 
 export async function updateSession(

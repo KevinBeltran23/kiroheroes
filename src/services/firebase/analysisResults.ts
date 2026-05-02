@@ -24,6 +24,7 @@ function mapResultDoc(
 export async function getAnalysisResultBySession(
   sessionId: string,
 ): Promise<AnalysisResult | null> {
+  console.log('[analysis-results] fetching for session', sessionId);
   const snapshot = await getDocs(
     query(
       collection(db, ANALYSIS_RESULTS_COLLECTION),
@@ -31,6 +32,7 @@ export async function getAnalysisResultBySession(
       limit(1),
     ),
   );
+  console.log('[analysis-results] fetch count', snapshot.docs.length);
   return snapshot.empty ? null : mapResultDoc(snapshot.docs[0]);
 }
 
@@ -45,8 +47,18 @@ export function subscribeToAnalysisResult(
       where('sessionId', '==', sessionId),
       limit(1),
     ),
-    snapshot => onNext(snapshot.empty ? null : mapResultDoc(snapshot.docs[0])),
-    error => onError?.(error),
+    snapshot => {
+      console.log(
+        '[analysis-results] live count',
+        sessionId,
+        snapshot.docs.length,
+      );
+      onNext(snapshot.empty ? null : mapResultDoc(snapshot.docs[0]));
+    },
+    error => {
+      console.error('[analysis-results] live error', error);
+      onError?.(error);
+    },
   );
 }
 
