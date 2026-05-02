@@ -152,17 +152,31 @@ These may be displayed as normalized percentages or as scores on a 0–100 scale
 - consistency
 - posture stability
 
-### Example Trend Labels
+### Example Approach Categories
 
-- finger-driven
-- wrist-led
-- arm-heavy
-- balanced
-- inconsistent
+- Arm-Heavy
+- Fulcrum Lift
+- Lead by the Bead
+- Wrist Break
 
 ---
 
-## How It Works
+## Demo Flow
+
+1. **Login** — user opens the app and logs in
+2. **Home** — home screen shows the most recently analyzed project from history
+3. **New Project** — user sets drum height and angle, app locks to landscape
+4. **Record** — guided capture overlay, optional countdown, user records a controlled rep
+5. **Save or Retry** — user chooses to keep the rep or re-record
+6. **Processing** — video uploads, analysis pipeline runs with live status updates
+7. **Results Dashboard**
+   - name the project
+   - scrub through the video preview
+   - movement contribution graphs (finger / wrist / arm %) sync with scrub position
+   - approach category: `Arm-Heavy`, `Fulcrum Lift`, `Lead by the Bead`, or `Wrist Break`
+   - plain-language summary of what the detected approach means
+
+---
 
 ### High-Level Flow
 
@@ -199,7 +213,7 @@ These may be displayed as normalized percentages or as scores on a 0–100 scale
 - Python
 - FastAPI
 - Containerized microservice
-- MediaPipe Holistic or equivalent pose + hand landmark pipeline
+- **MediaPipe Holistic** — pose + hand landmarks in a single pipeline (33 pose landmarks, 21 hand landmarks per hand)
 - Motion-based scoring and post-processing
 
 ## Tooling
@@ -329,7 +343,13 @@ The analysis service is responsible for:
 
 ## Prototype 1 Analysis Model
 
-Prototype 1 is based on motion analysis from video using pretrained landmark detection.
+Prototype 1 is based on motion analysis from video using pretrained landmark detection via **MediaPipe Holistic**.
+
+MediaPipe Holistic runs pose, hand, and face landmark detection in a single pipeline pass, providing:
+- 33 pose landmarks (shoulders, elbows, wrists, etc.)
+- 21 hand landmarks per hand (all finger joints from MCP to fingertip)
+
+The implementation lives in `services/analysis-api/app/landmarks.py` and outputs per-frame trajectories for all landmark keys.
 
 ### Landmark Targets
 
@@ -449,5 +469,31 @@ Some metrics and labels are still experimental and subject to iteration.
 ```bash
 yarn install
 yarn start
+```
 
-You will need the google-services.json and GoogleService-Info.plist files in the root directory as well as the .env file
+You will need the `google-services.json` and `GoogleService-Info.plist` files in the root directory as well as the `.env` file.
+
+### Analysis API
+
+#### Run in Docker (production)
+
+```bash
+cd services/analysis-api
+docker build -t analysis-api .
+docker run --rm -p 8080:8080 analysis-api
+```
+
+#### Run tests in Docker
+
+```bash
+cd services/analysis-api
+docker build --target test -t analysis-api-test .
+docker run --rm analysis-api-test
+```
+
+#### Run tests locally (no mediapipe install required)
+
+```bash
+cd services/analysis-api
+python3 -m pytest tests/ -v
+```

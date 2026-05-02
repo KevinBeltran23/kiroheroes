@@ -36,7 +36,44 @@ Prototype 1 must not:
 
 ---
 
-## User Story
+## Demo Flow
+
+The following is the intended demo order for Prototype 1 presentations.
+
+### 1. Login
+User opens the app and logs in.
+
+### 2. Home Screen
+Home screen displays the most recently analyzed project/video from the user's history.
+
+### 3. New Project
+User taps to start a new project. The app guides them through:
+- setting drum height and angle
+- landscape orientation for recording
+
+### 4. Record the Rep
+- App shows guided capture overlay with drum placement target and body framing guide
+- Optional countdown before recording begins
+- User records a controlled drumming rep in-app
+
+### 5. Save or Retry
+After recording, the user is presented with:
+- **Save rep** — proceed to upload and analysis
+- **Retry rep** — discard and re-record
+
+### 6. Processing
+Video uploads and the analysis pipeline runs. App shows processing status in real time.
+
+### 7. Results Dashboard
+Once complete, the results screen displays:
+
+- **Project name** — user can name the project
+- **Scrubbable video preview** — user can scrub through the recorded rep
+- **Movement contribution graphs** — finger, wrist, and arm percentages update as the user scrubs through the video
+- **Approach category** — one of: `Arm-Heavy`, `Fulcrum Lift`, `Lead by the Bead`, `Wrist Break`
+- **Approach summary** — plain-language explanation of what the detected approach means for the player's technique
+
+---
 
 As a drummer or instructor, I want to record a rep under consistent conditions and receive a breakdown of how much the player appears to be using fingers, wrist, and arm so I can better understand their approach and identify trends or inefficiencies.
 
@@ -203,30 +240,37 @@ The application must not describe them as:
 
 ---
 
-## Trend Labels
+## Approach Categories
 
-Prototype 1 should return one overall trend label.
+Prototype 1 should return one overall approach category label based on movement contribution trends.
 
-Initial supported labels:
+### Supported Categories
 
-- `finger-driven`
-- `wrist-led`
-- `arm-heavy`
-- `balanced`
-- `inconsistent`
+| Label | Description |
+|---|---|
+| `Arm-Heavy` | Dominant motion originates from the upper arm and elbow. Wrist and finger contribution is low relative to arm movement. |
+| `Fulcrum Lift` | Motion is centered around the fulcrum point between the thumb and index finger. Characterized by finger joint activity with relatively low wrist break. |
+| `Lead by the Bead` | Stroke is initiated from the fingertips and stick head. High distal finger movement relative to proximal joints and wrist. |
+| `Wrist Break` | Primary motion comes from wrist flexion/extension. Wrist angle change is dominant relative to arm and finger contribution. |
 
-### Initial Rule-Based Classifier
+### Classification Logic
 
-Use threshold-based logic, not a trained classifier.
+Use threshold-based logic, not a trained classifier. Thresholds should be easy to tune.
 
 Example rules:
-- highest contribution clearly finger-dominant → `finger-driven`
-- highest contribution clearly wrist-dominant → `wrist-led`
-- highest contribution clearly arm-dominant → `arm-heavy`
-- contributions relatively close together → `balanced`
-- high motion variance or unstable signal patterns → `inconsistent`
+- arm contribution clearly dominant → `Arm-Heavy`
+- high finger activity concentrated at MCP/PIP joints, low wrist break → `Fulcrum Lift`
+- high distal finger (DIP/tip) motion relative to wrist → `Lead by the Bead`
+- wrist angle change clearly dominant → `Wrist Break`
 
-These thresholds should be easy to tune.
+### Approach Summary
+
+Each category must include a short plain-language summary displayed on the results dashboard explaining what the label means for the player's technique. Example:
+
+- **Arm-Heavy**: "Most of your stroke motion is coming from the arm. This can reduce endurance and limit speed at higher tempos. Consider engaging the wrist and fingers more."
+- **Fulcrum Lift**: "Your stroke is centered around the fulcrum. This is a controlled, efficient approach common in matched grip technique."
+- **Lead by the Bead**: "You're initiating the stroke from the stick tip. This can produce a full sound but may reduce control at faster tempos."
+- **Wrist Break**: "Your wrist is doing most of the work. This is a common and efficient approach, especially for lower stroke heights."
 
 ---
 
@@ -234,21 +278,22 @@ These thresholds should be easy to tune.
 
 The results screen must display:
 
-- recorded video preview
-- three primary movement contribution metrics
-- one overall trend label
-- optional supporting metrics
-- chart or timeline view of metric changes over time
-- the ability to scrub through the recorded video and update dashboard context
+- **project name** — user can name the project from the results screen
+- **scrubbable video preview** — user can scrub through the recorded rep
+- **movement contribution graphs** — finger, wrist, and arm percentages that update in sync as the user scrubs through the video
+- **approach category** — one of: `Arm-Heavy`, `Fulcrum Lift`, `Lead by the Bead`, `Wrist Break`
+- **approach summary** — plain-language description of what the detected approach means
+- optional supporting metrics (symmetry, consistency, posture stability)
 
 ### Results UI Requirements
 
 The results view should include:
 
-- clear score cards for finger, wrist, and arm
-- a visual label for overall approach trend
-- a timeline chart placeholder or implementation
-- supporting feedback text
+- clear score cards for finger, wrist, and arm contribution
+- a visual approach category label
+- a timeline chart that syncs with video scrubbing position
+- the approach summary text block
+- supporting feedback items
 - accessibility support for dark mode and high contrast
 
 ---
@@ -306,15 +351,17 @@ The FastAPI service must:
 
 ---
 
-## Recommended Landmark Model
+## Landmark Model
 
-Preferred model:
-- **MediaPipe Holistic**
+**Confirmed implementation: MediaPipe Holistic**
 
-Reason:
-- pose + hand landmarks in one pipeline
-- good fit for shoulder, elbow, wrist, and finger-based measurements
-- avoids custom model training for Prototype 1
+MediaPipe Holistic is now implemented in `services/analysis-api/app/landmarks.py`.
+
+It provides in a single pipeline pass:
+- 33 pose landmarks (nose, shoulders, elbows, wrists, hips, etc.)
+- 21 hand landmarks per hand (wrist + all finger joints: MCP, PIP, DIP, tip for each finger)
+
+This gives full coverage for finger, wrist, and arm contribution scoring without any custom model training.
 
 Prototype 1 should avoid training a custom vision model unless absolutely necessary.
 
