@@ -78,11 +78,14 @@
       ],
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
-      "@react-native-firebase/firestore",
-      "@react-native-firebase/storage",
       "@react-native-google-signin/google-signin",
       "react-native-video"
     ],
-    "owner": "kevinbeltran"
+    "owner": "kevinbeltran",
+    "extra": {
+      "eas": {
+        "projectId": "b22ad0db-1ebf-447e-baf0-39d48f5cf182"
+      }
+    }
   }
 }

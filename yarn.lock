@@ -6719,52 +6719,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"kiroheroes@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "kiroheroes@workspace:."
-  dependencies:
-    "@expo/vector-icons": "npm:^15.0.3"
-    "@react-native-firebase/app": "npm:^23.8.6"
-    "@react-native-firebase/auth": "npm:^23.8.6"
-    "@react-native-firebase/firestore": "npm:^23.8.6"
-    "@react-native-firebase/storage": "npm:^23.8.6"
-    "@react-native-google-signin/google-signin": "npm:^16.1.1"
-    "@react-native/eslint-config": "npm:^0.84.0"
-    "@react-navigation/bottom-tabs": "npm:^7.14.0"
-    "@react-navigation/native": "npm:^7.1.28"
-    "@react-navigation/native-stack": "npm:^7.13.0"
-    "@shopify/react-native-skia": "npm:2.2.12"
-    "@tanstack/react-query": "npm:^5.90.21"
-    "@tanstack/react-query-persist-client": "npm:^5.90.22"
-    "@types/react": "npm:~19.1.0"
-    eslint: "npm:8.57.0"
-    eslint-config-prettier: "npm:^10.1.8"
-    eslint-plugin-prettier: "npm:^5.5.5"
-    expo: "npm:~54.0.33"
-    expo-build-properties: "npm:~1.0.10"
-    expo-camera: "npm:~17.0.10"
-    expo-dev-client: "npm:~6.0.20"
-    expo-file-system: "npm:~19.0.21"
-    expo-image-picker: "npm:~17.0.10"
-    expo-status-bar: "npm:~3.0.9"
-    expo-updates: "npm:~29.0.16"
-    husky: "npm:^9.1.7"
-    lint-staged: "npm:^16.2.7"
-    prettier: "npm:^3.8.1"
-    react: "npm:19.1.0"
-    react-native: "npm:0.81.5"
-    react-native-bouncy-checkbox: "npm:^4.1.4"
-    react-native-gesture-handler: "npm:~2.28.0"
-    react-native-mmkv: "npm:^4.1.2"
-    react-native-reanimated: "npm:~4.1.1"
-    react-native-safe-area-context: "npm:~5.6.0"
-    react-native-screens: "npm:~4.16.0"
-    react-native-video: "npm:^6.19.0"
-    react-native-worklets: "npm:0.5.1"
-    typescript: "npm:~5.9.2"
-  languageName: unknown
-  linkType: soft
-
 "kleur@npm:^3.0.3":
   version: 3.0.3
   resolution: "kleur@npm:3.0.3"
@@ -9480,6 +9434,52 @@ __metadata:
   checksum: 10c0/a9947d98ad60d01f6b26727570f3bcceb6c8fa789da64fe6889908fe2e294d57503b14bf2b5af7605c2d36647259e856635cd4c49eab41667658ec9d0080ec3f
   languageName: node
   linkType: hard
+
+"sticksplit@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "sticksplit@workspace:."
+  dependencies:
+    "@expo/vector-icons": "npm:^15.0.3"
+    "@react-native-firebase/app": "npm:^23.8.6"
+    "@react-native-firebase/auth": "npm:^23.8.6"
+    "@react-native-firebase/firestore": "npm:^23.8.6"
+    "@react-native-firebase/storage": "npm:^23.8.6"
+    "@react-native-google-signin/google-signin": "npm:^16.1.1"
+    "@react-native/eslint-config": "npm:^0.84.0"
+    "@react-navigation/bottom-tabs": "npm:^7.14.0"
+    "@react-navigation/native": "npm:^7.1.28"
+    "@react-navigation/native-stack": "npm:^7.13.0"
+    "@shopify/react-native-skia": "npm:2.2.12"
+    "@tanstack/react-query": "npm:^5.90.21"
+    "@tanstack/react-query-persist-client": "npm:^5.90.22"
+    "@types/react": "npm:~19.1.0"
+    eslint: "npm:8.57.0"
+    eslint-config-prettier: "npm:^10.1.8"
+    eslint-plugin-prettier: "npm:^5.5.5"
+    expo: "npm:~54.0.33"
+    expo-build-properties: "npm:~1.0.10"
+    expo-camera: "npm:~17.0.10"
+    expo-dev-client: "npm:~6.0.20"
+    expo-file-system: "npm:~19.0.21"
+    expo-image-picker: "npm:~17.0.10"
+    expo-status-bar: "npm:~3.0.9"
+    expo-updates: "npm:~29.0.16"
+    husky: "npm:^9.1.7"
+    lint-staged: "npm:^16.2.7"
+    prettier: "npm:^3.8.1"
+    react: "npm:19.1.0"
+    react-native: "npm:0.81.5"
+    react-native-bouncy-checkbox: "npm:^4.1.4"
+    react-native-gesture-handler: "npm:~2.28.0"
+    react-native-mmkv: "npm:^4.1.2"
+    react-native-reanimated: "npm:~4.1.1"
+    react-native-safe-area-context: "npm:~5.6.0"
+    react-native-screens: "npm:~4.16.0"
+    react-native-video: "npm:^6.19.0"
+    react-native-worklets: "npm:0.5.1"
+    typescript: "npm:~5.9.2"
+  languageName: unknown
+  linkType: soft
 
 "stop-iteration-iterator@npm:^1.1.0":
   version: 1.1.0
