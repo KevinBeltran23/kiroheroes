@@ -12,8 +12,7 @@ export type RootStackParamList = {
 };
 
 export type MainTabParamList = {
-  HomeTab: undefined;
-  NewSessionTab: undefined;
   HistoryTab: undefined;
+  NewSessionTab: undefined;
   SettingsTab: undefined;
 };

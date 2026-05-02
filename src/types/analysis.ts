@@ -80,6 +80,15 @@ export interface AnalysisJob {
   thumbnailPath?: string | null;
 }
 
+export interface HandResult {
+  label: 'arm-heavy' | 'fulcrum-lift' | 'lead-by-the-bead' | 'wrist-break';
+  explanation: string;
+  fingerPct: number;
+  wristPct: number;
+  armPct: number;
+  compactness: number;
+}
+
 export interface AnalysisResult {
   id: string;
   sessionId: string;
@@ -95,6 +104,9 @@ export interface AnalysisResult {
     timingDrift: number[];
     consistency: number[];
   };
+  rightHand?: HandResult;
+  leftHand?: HandResult;
+  overallSummary?: string;
   artifactPaths?: {
     overlayVideoPath?: string | null;
     thumbnailPath?: string | null;
