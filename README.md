@@ -49,7 +49,7 @@ For Prototype 1, the system focuses on estimating relative movement contribution
 - wrist
 - arm
 
-The goal is not to replace an instructor or provide medical-grade biomechanics. Instead, the app provides interpretable motion-based feedback that helps users identify technique trends, inefficiencies, and areas for improvement.
+The goal is not to replace an instructor or provide physiological measurement. Instead, the app provides interpretable motion-based feedback that helps users identify technique trends, inefficiencies, and areas for improvement.
 
 ---
 
@@ -74,7 +74,7 @@ Prototype 1 focuses on:
 - leading-with-the-bead analysis
 - live real-time playing feedback
 - arbitrary camera angles
-- true physiological muscle activation measurement
+- direct measurement of muscle activation or force production
 
 ---
 
@@ -116,23 +116,25 @@ This improves consistency across recordings and makes motion analysis more relia
 
 ## What the App Measures
 
-Prototype 1 estimates **relative movement contribution**, not true muscle activation.
+Prototype 1 estimates **likely movement contribution** from visible motion patterns in recorded video. It does not measure true muscle activation, force production, or physiological recruitment.
 
 When the app refers to:
 
-- finger usage
-- wrist usage
-- arm usage
+- finger contribution
+- wrist contribution
+- arm contribution
 
-it is referring to movement inferred from body and hand landmarks over time.
+it is referring to movement inferred from body and hand landmark positions over time.
 
-These metrics should be interpreted as:
+These outputs should be interpreted as:
 
-- movement contribution estimates
-- technique trend indicators
-- comparative motion feedback
+- estimated movement contribution from visible joint motion
+- inferred motion pattern indicators
+- approach trend estimates based on observed movement
 
-not as medical or biomechanical ground truth.
+not as direct measurement of muscle activity or biomechanical ground truth.
+
+The system answers: **"Where does the stroke appear to be primarily driven from?"** — not "which exact muscles are firing."
 
 ---
 
@@ -369,26 +371,26 @@ Prototype 1 estimates relative contribution from:
 
 ### Scoring Approach
 
-The current scoring model is intended to derive numeric scores from motion trajectories over time.
+The scoring model derives numeric estimates from visible motion trajectories over time. These are inferred movement contribution signals, not direct measurements of muscle activity.
 
 Examples:
 
 - finger contribution estimated from finger joint movement relative to the palm
-- wrist contribution estimated from angle change between the forearm and hand
-- arm contribution estimated from elbow angle change and upper arm movement
+- wrist contribution estimated from observed wrist displacement and angle change
+- arm contribution estimated from elbow angle change and upper-arm displacement
 
-These metrics may be normalized across a clip or within a moving time window.
+These estimates are normalized across the clip so they sum to 100%, representing relative visible motion contribution — not physiological percentages.
 
-### Trend Classification
+### Approach Classification
 
-Overall approach labels are derived from movement thresholds and score combinations rather than from an end-to-end trained classifier.
+Overall approach labels are derived from movement thresholds and score combinations using a deterministic rule-based classifier. Labels represent inferred motion patterns, not direct physiological truths.
 
-Examples:
+Supported labels:
 
-- high arm contribution + lower wrist contribution → arm-heavy
-- high wrist contribution + lower arm contribution → wrist-led
-- high finger contribution with compact motion → finger-driven
-- relatively even contribution values → balanced
+- `Arm-Heavy` — visible motion suggests arm-driven initiation
+- `Fulcrum Lift` — compact motion pattern, low visible wrist break
+- `Lead by the Bead` — wrist-led motion with forearm accompaniment
+- `Wrist Break` — wrist-dominant motion with minimal arm contribution
 
 ---
 
@@ -423,7 +425,7 @@ The emphasis is on:
 
 This project does **not** currently aim to:
 
-- measure true muscle activation
+- measure true muscle activation or force production
 - replace a human instructor
 - support all camera angles
 - perfectly evaluate all dimensions of drumming technique

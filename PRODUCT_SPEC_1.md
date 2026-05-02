@@ -30,7 +30,7 @@ Prototype 1 must not:
 
 - track sticks
 - detect bead angle
-- estimate true muscle activation
+- claim to measure true muscle activation or force production
 - claim medical or biomechanical accuracy
 - support arbitrary camera setups
 
@@ -168,36 +168,36 @@ These are supporting metrics, not the main product claim.
 
 ### Finger Involvement
 
-Finger involvement should represent movement of the fingers relative to the palm/hand over time.
+Finger involvement represents estimated movement contribution from the fingers, inferred from visible finger joint and fingertip motion relative to the palm over time.
 
 Possible signal sources:
 - fingertip motion relative to palm center
 - MCP/PIP/DIP joint movement
 - per-frame finger curl or extension changes
 
-This should be treated as a relative movement signal, not true finger force.
+This is a relative visible motion signal, not a measurement of finger muscle force.
 
 ### Wrist Involvement
 
-Wrist involvement should represent motion at the wrist joint.
+Wrist involvement represents estimated movement contribution from the wrist, inferred from observed wrist displacement and angle change over time.
 
 Recommended approach:
 - compute forearm vector from elbow to wrist
 - compute hand vector from wrist to hand knuckle center
 - measure angle change between those vectors over time
 
-This signal should represent wrist break or wrist-driven motion.
+This signal represents inferred wrist-driven motion, not direct wrist muscle activation.
 
 ### Arm Involvement
 
-Arm involvement should represent larger-scale arm motion.
+Arm involvement represents estimated movement contribution from the arm, inferred from elbow angle changes and upper-arm displacement over time.
 
 Recommended approach:
 - compute elbow angle changes
 - compute upper-arm movement from shoulder to elbow
-- optionally include shoulder movement as part of arm involvement for Prototype 1
+- optionally include shoulder movement as part of arm contribution for Prototype 1
 
-This should represent arm-dominant motion relative to wrist and fingers.
+This represents inferred arm-dominant motion relative to wrist and fingers, not direct measurement of arm muscle recruitment.
 
 ---
 
@@ -229,14 +229,15 @@ Return rounded values for UI display.
 The application must describe these scores as:
 
 - estimated movement contribution
-- motion-based contribution
-- approach trend indicators
+- motion-based contribution estimate
+- inferred approach trend from visible motion
 
 The application must not describe them as:
 
 - actual muscle usage
 - physiological measurement
-- true biomechanics
+- direct muscle activation
+- true biomechanical data
 
 ---
 
@@ -248,10 +249,10 @@ Prototype 1 should return one overall approach category label based on movement 
 
 | Label | Description |
 |---|---|
-| `Arm-Heavy` | Dominant motion originates from the upper arm and elbow. Wrist and finger contribution is low relative to arm movement. |
-| `Fulcrum Lift` | Motion is centered around the fulcrum point between the thumb and index finger. Characterized by finger joint activity with relatively low wrist break. |
-| `Lead by the Bead` | Stroke is initiated from the fingertips and stick head. High distal finger movement relative to proximal joints and wrist. |
-| `Wrist Break` | Primary motion comes from wrist flexion/extension. Wrist angle change is dominant relative to arm and finger contribution. |
+| `Arm-Heavy` | Visible motion suggests the stroke is primarily driven from the upper arm and elbow. Wrist and finger contribution appears low relative to arm movement. |
+| `Fulcrum Lift` | Motion pattern appears compact and centered near the fulcrum area. Characterized by low visible wrist break and relatively contained initiation. |
+| `Lead by the Bead` | Wrist-led motion pattern with forearm accompaniment. Stroke initiation appears to come from the wrist with the forearm following. |
+| `Wrist Break` | Wrist-dominant motion pattern. Wrist displacement or angle change is the primary visible signal, with minimal arm contribution. |
 
 ### Classification Logic
 
@@ -267,10 +268,10 @@ Example rules:
 
 Each category must include a short plain-language summary displayed on the results dashboard explaining what the label means for the player's technique. Example:
 
-- **Arm-Heavy**: "Most of your stroke motion is coming from the arm. This can reduce endurance and limit speed at higher tempos. Consider engaging the wrist and fingers more."
-- **Fulcrum Lift**: "Your stroke is centered around the fulcrum. This is a controlled, efficient approach common in matched grip technique."
-- **Lead by the Bead**: "You're initiating the stroke from the stick tip. This can produce a full sound but may reduce control at faster tempos."
-- **Wrist Break**: "Your wrist is doing most of the work. This is a common and efficient approach, especially for lower stroke heights."
+- **Arm-Heavy**: "Visible motion suggests most of the stroke is coming from the arm. This can reduce endurance and limit speed at higher tempos. Consider engaging the wrist and fingers more."
+- **Fulcrum Lift**: "The stroke pattern appears compact and centered near the fulcrum area. This is a controlled, efficient approach common in matched grip technique."
+- **Lead by the Bead**: "The stroke appears wrist-initiated with some forearm accompaniment. This is a common and effective approach."
+- **Wrist Break**: "Visible motion suggests the wrist is doing most of the work. This is an efficient approach, especially for lower stroke heights."
 
 ---
 

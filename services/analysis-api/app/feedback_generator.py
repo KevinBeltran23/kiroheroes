@@ -19,42 +19,43 @@ _FEEDBACK_TEMPLATES: dict[str, dict] = {
     "arm-heavy": {
         "type": "posture",
         "severity": "warning",
-        "title": "Arm-Heavy Approach Detected",
+        "title": "Arm-Dominant Motion Pattern Detected",
         "suggestion": (
+            "Visible motion suggests the stroke is primarily driven from the arm. "
             "Try isolating wrist motion by practicing slow single strokes "
             "with your upper arm resting against your side. "
-            "Focus on letting the wrist and fingers do the work."
+            "Focus on letting the wrist and fingers lead the visible motion."
         ),
     },
     "fulcrum-lift": {
         "type": "posture",
         "severity": "info",
-        "title": "Fulcrum-Lift Approach Detected",
+        "title": "Compact Fulcrum-Area Motion Pattern Detected",
         "suggestion": (
-            "This is a compact, controlled approach. "
-            "Make sure the fulcrum is relaxed and not gripping too tightly. "
+            "The stroke pattern appears compact and centered near the fulcrum area. "
+            "Make sure the fulcrum grip is relaxed and not overly tight. "
             "Check that the back fingers are providing support without tension."
         ),
     },
     "lead-by-the-bead": {
         "type": "posture",
         "severity": "info",
-        "title": "Lead-by-the-Bead Approach Detected",
+        "title": "Wrist-Led Motion Pattern with Forearm Accompaniment Detected",
         "suggestion": (
-            "The wrist is leading with some forearm accompaniment. "
+            "Visible motion suggests the wrist is leading with some forearm accompaniment. "
             "This is a common and effective approach. "
-            "At higher tempos, try to reduce the forearm contribution "
-            "and let the wrist do more of the work independently."
+            "At higher tempos, try to reduce the visible forearm contribution "
+            "and let the wrist motion become more independent."
         ),
     },
     "wrist-break": {
         "type": "posture",
         "severity": "info",
-        "title": "Wrist-Break Approach Detected",
+        "title": "Wrist-Dominant Motion Pattern Detected",
         "suggestion": (
-            "The wrist is doing most of the work with minimal arm contribution. "
-            "This is efficient for lower stroke heights. "
-            "Make sure the wrist motion is relaxed and not forced."
+            "Visible motion suggests the wrist is the primary driver of the stroke. "
+            "This is an efficient inferred pattern for lower stroke heights. "
+            "Make sure the wrist motion appears relaxed and not forced."
         ),
     },
 }

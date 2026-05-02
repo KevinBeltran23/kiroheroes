@@ -162,51 +162,51 @@ def classify_hand(scores: dict, *, hand: str) -> HandClassification:
 _EXPLANATIONS: dict[str, dict[str, str]] = {
     "arm-heavy": {
         "right": (
-            "Most of the stroke motion is coming from the elbow and forearm. "
-            "The wrist is contributing less than the arm chain. "
-            "This can reduce endurance and limit speed at higher tempos. "
-            "Consider engaging the wrist more to reduce arm fatigue."
+            "Visible motion suggests the stroke is primarily driven from the elbow and forearm. "
+            "The wrist appears to be contributing less than the arm chain. "
+            "This inferred pattern can reduce endurance and limit speed at higher tempos. "
+            "Consider engaging the wrist more to reduce visible arm dominance."
         ),
         "left": (
-            "The stroke appears to be initiated from the elbow and arm chain. "
-            "The expected rotational wrist motion is less prominent than the arm contribution. "
+            "The stroke pattern appears to be initiated from the elbow and arm chain. "
+            "The expected rotational wrist motion is less prominent than the observed arm contribution. "
             "Try to let the wrist lead the stroke with the arm following."
         ),
     },
     "fulcrum-lift": {
         "right": (
-            "The stroke motion is compact and appears to initiate near the fulcrum area. "
+            "The stroke motion appears compact and likely initiates near the fulcrum area. "
             "There is little visible wrist break, and the wrist stays roughly in line with the forearm. "
-            "This is a controlled, efficient approach common in matched grip technique."
+            "This inferred pattern is consistent with a controlled, efficient approach."
         ),
         "left": (
-            "The stroke appears compact and centered near the fulcrum area "
+            "The stroke pattern appears compact and centered near the fulcrum area "
             "where the thumb, index, and middle fingers relate. "
-            "This is a controlled approach with minimal large-scale arm or wrist motion."
+            "This is an inferred compact approach with minimal large-scale arm or wrist motion."
         ),
     },
     "lead-by-the-bead": {
         "right": (
-            "The stroke shows more wrist initiation than arm-heavy, "
+            "The stroke shows more visible wrist motion than arm-heavy, "
             "but the forearm is still moving with the wrist. "
-            "This is a wrist-led approach with some forearm accompaniment."
+            "This is an inferred wrist-led pattern with some forearm accompaniment."
         ),
         "left": (
-            "The wrist is driving the stroke, but the forearm is moving along with it. "
-            "This is a wrist-led approach with forearm accompaniment, "
-            "common in traditional grip when the wrist leads but the arm follows."
+            "The wrist appears to be driving the stroke, but the forearm is moving along with it. "
+            "This is an inferred wrist-led pattern with forearm accompaniment, "
+            "consistent with traditional grip when the wrist leads but the arm follows."
         ),
     },
     "wrist-break": {
         "right": (
-            "The stroke is primarily driven by vertical wrist motion. "
-            "Arm contribution is minimal. "
-            "This is an efficient wrist-dominant approach, especially effective at lower stroke heights."
+            "Visible motion suggests the stroke is primarily driven by vertical wrist movement. "
+            "Arm contribution appears minimal. "
+            "This inferred pattern is consistent with an efficient wrist-dominant approach."
         ),
         "left": (
-            "The stroke is primarily driven by rotational wrist motion. "
-            "Arm contribution is minimal. "
-            "This is an efficient wrist-dominant approach for traditional grip."
+            "Visible motion suggests the stroke is primarily driven by rotational wrist movement. "
+            "Arm contribution appears minimal. "
+            "This inferred pattern is consistent with an efficient wrist-dominant approach for traditional grip."
         ),
     },
 }

@@ -4,7 +4,7 @@ scoring.py
 Normalises raw motion signals into estimated movement contribution percentages
 and computes supporting scores.
 
-These are motion-based contribution estimates, not true muscle measurements.
+These are motion-based contribution estimates inferred from visible landmark movement, not direct measurements of muscle activity.
 """
 from __future__ import annotations
 
