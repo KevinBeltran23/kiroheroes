@@ -8558,6 +8558,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"react-native-nitro-modules@npm:^0.33.9":
+  version: 0.33.9
+  resolution: "react-native-nitro-modules@npm:0.33.9"
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+  checksum: 10c0/1784fb51abbca6f82d792134055352c42a3bafb3450fc326b04f3cea092126ab1c9ebf152fc0ca43130c46f1537996b06ff33e644a576b03eb97f4413f5c76c3
+  languageName: node
+  linkType: hard
+
 "react-native-reanimated@npm:~4.1.1":
   version: 4.1.6
   resolution: "react-native-reanimated@npm:4.1.6"
@@ -9472,6 +9482,7 @@ __metadata:
     react-native-bouncy-checkbox: "npm:^4.1.4"
     react-native-gesture-handler: "npm:~2.28.0"
     react-native-mmkv: "npm:^4.1.2"
+    react-native-nitro-modules: "npm:^0.33.9"
     react-native-reanimated: "npm:~4.1.1"
     react-native-safe-area-context: "npm:~5.6.0"
     react-native-screens: "npm:~4.16.0"
