@@ -6,7 +6,6 @@ import {
   getFirestore,
   limit,
   onSnapshot,
-  orderBy,
   query,
   serverTimestamp,
   where,
@@ -29,7 +28,6 @@ export async function getAnalysisResultBySession(
     query(
       collection(db, ANALYSIS_RESULTS_COLLECTION),
       where('sessionId', '==', sessionId),
-      orderBy('createdAt', 'desc'),
       limit(1),
     ),
   );
@@ -45,7 +43,6 @@ export function subscribeToAnalysisResult(
     query(
       collection(db, ANALYSIS_RESULTS_COLLECTION),
       where('sessionId', '==', sessionId),
-      orderBy('createdAt', 'desc'),
       limit(1),
     ),
     snapshot => onNext(snapshot.empty ? null : mapResultDoc(snapshot.docs[0])),
