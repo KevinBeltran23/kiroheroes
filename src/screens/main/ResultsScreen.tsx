@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   LayoutChangeEvent,
-  Pressable,
+  NativeTouchEvent,
+  PanResponder,
   ScrollView,
   StyleSheet,
   Text,
@@ -37,7 +38,11 @@ function percent(value?: number) {
   return `${Math.round(value ?? 0)}%`;
 }
 
-function metricFromResult(result: AnalysisResult, id: string, fallback: number) {
+function metricFromResult(
+  result: AnalysisResult,
+  id: string,
+  fallback: number,
+) {
   return result.metrics.find(metric => metric.id === id)?.value ?? fallback;
 }
 
@@ -63,23 +68,80 @@ function useVideoUrl(path?: string | null) {
 
 function ContributionChart({
   result,
-  selectedIndex,
-  onSelect,
+  scrubProgress,
+  onScrub,
+  onScrubStart,
+  onScrubEnd,
+  duration,
 }: {
   result: AnalysisResult;
-  selectedIndex: number;
-  onSelect: (index: number) => void;
+  scrubProgress: number;
+  onScrub: (progress: number) => void;
+  onScrubStart: () => void;
+  onScrubEnd: () => void;
+  duration: number;
 }) {
   const { scaleHeight, proportionalSize, scaleFont } = useResponsiveStyles();
   const [width, setWidth] = useState(1);
-  const finger = result.chartSeries.fingerUsage ?? [28, 35, 31, 33, 30, 37, 34, 36];
-  const wrist = result.chartSeries.wristUsage ?? [60, 66, 70, 68, 72, 69, 71, 68];
+  const chartRef = useRef<View>(null);
+  const chartLeft = useRef(0);
+  const finger = result.chartSeries.fingerUsage ?? [
+    28, 35, 31, 33, 30, 37, 34, 36,
+  ];
+  const wrist = result.chartSeries.wristUsage ?? [
+    60, 66, 70, 68, 72, 69, 71, 68,
+  ];
   const arm = result.chartSeries.armUsage ?? [18, 13, 16, 12, 15, 17, 14, 18];
   const count = Math.max(finger.length, wrist.length, arm.length, 1);
-  const barWidth = Math.max(2, width / count - proportionalSize(2));
+  const groupWidth = Math.max(5, width / count - proportionalSize(2));
+  const barWidth = Math.max(1, groupWidth / 4);
+
+  const scrubFromX = (x: number) => {
+    const clamped = Math.min(width, Math.max(0, x));
+    onScrub(clamped / Math.max(width, 1));
+  };
+
+  const measureAndSelect = (event: NativeTouchEvent) => {
+    chartRef.current?.measure((_x, _y, measuredWidth, _h, pageX) => {
+      chartLeft.current = pageX;
+      setWidth(Math.max(1, measuredWidth));
+      scrubFromX(event.pageX - pageX);
+    });
+  };
+
+  const selectFromPageX = (pageX: number) => {
+    const relativeX = pageX - chartLeft.current;
+    scrubFromX(relativeX);
+  };
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: event => {
+          onScrubStart();
+          measureAndSelect(event.nativeEvent);
+        },
+        onPanResponderMove: (_event, gestureState) => {
+          selectFromPageX(gestureState.moveX);
+        },
+        onPanResponderRelease: () => {
+          onScrubEnd();
+        },
+        onPanResponderTerminate: () => {
+          onScrubEnd();
+        },
+        onPanResponderTerminationRequest: () => false,
+      }),
+    [count, onScrubEnd, onScrubStart, width],
+  );
 
   const onLayout = (event: LayoutChangeEvent) => {
     setWidth(Math.max(1, event.nativeEvent.layout.width));
+    chartRef.current?.measure((_x, _y, _w, _h, pageX) => {
+      chartLeft.current = pageX;
+    });
   };
 
   const s = StyleSheet.create({
@@ -87,8 +149,8 @@ function ContributionChart({
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginTop: scaleHeight(18),
-      marginBottom: scaleHeight(8),
+      marginTop: scaleHeight(12),
+      marginBottom: scaleHeight(6),
     },
     title: {
       color: dashboard.text,
@@ -100,11 +162,23 @@ function ContributionChart({
       justifyContent: 'space-around',
       marginBottom: scaleHeight(6),
     },
-    legendItem: { flexDirection: 'row', alignItems: 'center', gap: proportionalSize(5) },
-    dot: { width: proportionalSize(7), height: proportionalSize(7), borderRadius: 99 },
-    legendText: { color: dashboard.text, fontSize: scaleFont(12), fontWeight: '700' },
+    legendItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: proportionalSize(5),
+    },
+    dot: {
+      width: proportionalSize(7),
+      height: proportionalSize(7),
+      borderRadius: 99,
+    },
+    legendText: {
+      color: dashboard.text,
+      fontSize: scaleFont(12),
+      fontWeight: '700',
+    },
     chart: {
-      height: scaleHeight(142),
+      height: scaleHeight(96),
       borderBottomWidth: 1,
       borderBottomColor: dashboard.border,
       borderTopWidth: 1,
@@ -115,10 +189,12 @@ function ContributionChart({
       paddingTop: scaleHeight(8),
     },
     stack: {
+      flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'flex-end',
       height: '100%',
       marginRight: proportionalSize(2),
+      gap: proportionalSize(1),
     },
     bar: { borderRadius: proportionalSize(2), width: barWidth },
     marker: {
@@ -130,9 +206,9 @@ function ContributionChart({
     },
     markerKnob: {
       position: 'absolute',
-      top: -proportionalSize(5),
-      width: proportionalSize(10),
-      height: proportionalSize(10),
+      top: -proportionalSize(4),
+      width: proportionalSize(9),
+      height: proportionalSize(9),
       borderRadius: 99,
       backgroundColor: dashboard.text,
     },
@@ -144,13 +220,20 @@ function ContributionChart({
     axisText: { color: dashboard.muted, fontSize: scaleFont(11) },
   });
 
-  const markerLeft = Math.min(width - 2, Math.max(0, (selectedIndex / Math.max(count - 1, 1)) * width));
+  const markerLeft = Math.min(width - 2, Math.max(0, scrubProgress * width));
+  const axisEnd = duration > 0 ? duration : count;
+  const formatTime = (seconds: number) =>
+    `${seconds.toFixed(seconds < 10 ? 1 : 0)}s`;
 
   return (
     <>
       <View style={s.header}>
         <Text style={s.title}>Contribution Over Time</Text>
-        <Icon name="information-outline" size={proportionalSize(17)} color={dashboard.muted} />
+        <Icon
+          name="information-outline"
+          size={proportionalSize(17)}
+          color={dashboard.muted}
+        />
       </View>
       <View style={s.legend}>
         {[
@@ -164,27 +247,66 @@ function ContributionChart({
           </View>
         ))}
       </View>
-      <View style={s.chart} onLayout={onLayout}>
+      <View
+        ref={chartRef}
+        style={s.chart}
+        onLayout={onLayout}
+        {...panResponder.panHandlers}
+      >
         {Array.from({ length: count }).map((_, index) => (
-          <Pressable key={index} style={s.stack} onPress={() => onSelect(index)}>
-            <View style={[s.bar, { height: `${Math.max(4, arm[index] ?? 0)}%`, backgroundColor: dashboard.gold }]} />
-            <View style={[s.bar, { height: `${Math.max(4, wrist[index] ?? 0)}%`, backgroundColor: dashboard.green }]} />
-            <View style={[s.bar, { height: `${Math.max(4, finger[index] ?? 0)}%`, backgroundColor: dashboard.blue }]} />
-          </Pressable>
+          <View key={index} style={[s.stack, { width: groupWidth }]}>
+            <View
+              style={[
+                s.bar,
+                {
+                  height: `${Math.max(4, arm[index] ?? 0)}%`,
+                  backgroundColor: dashboard.gold,
+                },
+              ]}
+            />
+            <View
+              style={[
+                s.bar,
+                {
+                  height: `${Math.max(4, wrist[index] ?? 0)}%`,
+                  backgroundColor: dashboard.green,
+                },
+              ]}
+            />
+            <View
+              style={[
+                s.bar,
+                {
+                  height: `${Math.max(4, finger[index] ?? 0)}%`,
+                  backgroundColor: dashboard.blue,
+                },
+              ]}
+            />
+          </View>
         ))}
         <View style={[s.marker, { left: markerLeft }]} />
-        <View style={[s.markerKnob, { left: markerLeft - proportionalSize(4) }]} />
+        <View
+          style={[s.markerKnob, { left: markerLeft - proportionalSize(4) }]}
+        />
       </View>
       <View style={s.axis}>
         <Text style={s.axisText}>0s</Text>
-        <Text style={s.axisText}>{Math.round(count / 2)}s</Text>
-        <Text style={s.axisText}>{count}s</Text>
+        <Text style={s.axisText}>{formatTime(axisEnd / 2)}</Text>
+        <Text style={s.axisText}>{formatTime(axisEnd)}</Text>
       </View>
     </>
   );
 }
 
-function MuscleTile({ label, value, color }: { label: string; value: number; color: string }) {
+function MuscleTile({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: number;
+  color: string;
+}) {
   const { scaleHeight, proportionalSize, scaleFont } = useResponsiveStyles();
   const s = StyleSheet.create({
     tile: {
@@ -223,7 +345,13 @@ function ResultsContent({
   projectName: string;
 }) {
   const { scaleHeight, proportionalSize, scaleFont } = useResponsiveStyles();
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [scrubProgress, setScrubProgress] = useState(0);
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [videoPaused, setVideoPaused] = useState(true);
+  const isGraphDraggingRef = useRef(false);
+  const isVideoPlayingRef = useRef(false);
+  const wasPlayingBeforeGraphDragRef = useRef(false);
+  const videoRef = useRef<any>(null);
   const muscleUsage = result.muscleUsage ?? {
     finger: metricFromResult(result, 'finger_usage', 28),
     wrist: metricFromResult(result, 'wrist_usage', 52),
@@ -236,11 +364,60 @@ function ResultsContent({
       "You're using a lot of arm. Try focusing on smaller motions from the wrist to improve efficiency and control.",
   };
   const confidenceLevel =
-    approach.confidence >= 75 ? 'High' : approach.confidence >= 50 ? 'Medium' : 'Low';
+    approach.confidence >= 75
+      ? 'High'
+      : approach.confidence >= 50
+        ? 'Medium'
+        : 'Low';
+  const frameCount = Math.max(
+    result.chartSeries.fingerUsage?.length ?? 0,
+    result.chartSeries.wristUsage?.length ?? 0,
+    result.chartSeries.armUsage?.length ?? 0,
+    1,
+  );
+  const selectedIndex = Math.round(scrubProgress * Math.max(frameCount - 1, 1));
+  const scrubSeconds = scrubProgress * videoDuration;
+
+  const handleGraphScrub = (progress: number) => {
+    setScrubProgress(progress);
+    if (videoDuration && videoRef.current) {
+      videoRef.current.seek(progress * videoDuration);
+    }
+  };
+
+  const handleVideoProgress = (currentTime: number) => {
+    if (!videoDuration || isGraphDraggingRef.current) {
+      return;
+    }
+    setScrubProgress(Math.min(1, Math.max(0, currentTime / videoDuration)));
+  };
+
+  const startGraphScrub = () => {
+    wasPlayingBeforeGraphDragRef.current = isVideoPlayingRef.current;
+    isGraphDraggingRef.current = true;
+    if (isVideoPlayingRef.current) {
+      setVideoPaused(true);
+    }
+  };
+
+  const endGraphScrub = () => {
+    isGraphDraggingRef.current = false;
+    if (wasPlayingBeforeGraphDragRef.current) {
+      setVideoPaused(false);
+    }
+  };
 
   const s = StyleSheet.create({
-    title: { color: dashboard.text, fontSize: scaleFont(19), fontWeight: '900' },
-    meta: { color: dashboard.muted, fontSize: scaleFont(12), marginTop: scaleHeight(4) },
+    title: {
+      color: dashboard.text,
+      fontSize: scaleFont(19),
+      fontWeight: '900',
+    },
+    meta: {
+      color: dashboard.muted,
+      fontSize: scaleFont(12),
+      marginTop: scaleHeight(4),
+    },
     videoShell: {
       marginTop: scaleHeight(16),
       height: scaleHeight(170),
@@ -253,8 +430,16 @@ function ResultsContent({
       alignItems: 'center',
     },
     video: { width: '100%', height: '100%' },
-    videoFallback: { color: dashboard.muted, fontSize: scaleFont(13), marginTop: scaleHeight(8) },
-    row: { flexDirection: 'row', gap: proportionalSize(8), marginTop: scaleHeight(10) },
+    videoFallback: {
+      color: dashboard.muted,
+      fontSize: scaleFont(13),
+      marginTop: scaleHeight(8),
+    },
+    row: {
+      flexDirection: 'row',
+      gap: proportionalSize(8),
+      marginTop: scaleHeight(10),
+    },
     approachPanel: {
       marginTop: scaleHeight(10),
       backgroundColor: dashboard.panel,
@@ -270,7 +455,11 @@ function ResultsContent({
       borderRightColor: dashboard.border,
     },
     approachSide: { flex: 0.8, padding: proportionalSize(13) },
-    eyebrow: { color: dashboard.muted, fontSize: scaleFont(10), fontWeight: '800' },
+    eyebrow: {
+      color: dashboard.muted,
+      fontSize: scaleFont(10),
+      fontWeight: '800',
+    },
     approachTitle: {
       color: dashboard.gold,
       fontSize: scaleFont(19),
@@ -297,7 +486,11 @@ function ResultsContent({
       lineHeight: scaleFont(19),
       marginTop: scaleHeight(7),
     },
-    angleRow: { flexDirection: 'row', gap: proportionalSize(8), marginTop: scaleHeight(10) },
+    angleRow: {
+      flexDirection: 'row',
+      gap: proportionalSize(8),
+      marginTop: scaleHeight(10),
+    },
     angleCard: {
       flex: 1,
       backgroundColor: dashboard.panel2,
@@ -306,32 +499,92 @@ function ResultsContent({
       borderWidth: 1,
       padding: proportionalSize(11),
     },
-    angleTitle: { color: dashboard.text, fontSize: scaleFont(12), fontWeight: '900' },
-    angleText: { color: dashboard.muted, fontSize: scaleFont(11), marginTop: scaleHeight(4) },
+    angleTitle: {
+      color: dashboard.text,
+      fontSize: scaleFont(12),
+      fontWeight: '900',
+    },
+    angleText: {
+      color: dashboard.muted,
+      fontSize: scaleFont(11),
+      marginTop: scaleHeight(4),
+    },
   });
 
   return (
     <>
-      <Text style={s.title}>{projectName || 'Front Ensemble Block - Day 4'}</Text>
-      <Text style={s.meta}>Traditional grip analysis - {Math.max(1, selectedIndex + 1)} strokes sampled</Text>
+      <Text style={s.title}>
+        {projectName || 'Front Ensemble Block - Day 4'}
+      </Text>
+      <Text style={s.meta}>
+        Traditional grip analysis - {scrubSeconds.toFixed(1)}s - sample{' '}
+        {Math.max(1, selectedIndex + 1)}
+      </Text>
 
       <View style={s.videoShell}>
         {videoUrl ? (
-          <Video source={{ uri: videoUrl }} style={s.video} controls resizeMode="cover" paused />
+          <Video
+            ref={videoRef}
+            source={{ uri: videoUrl }}
+            style={s.video}
+            controls
+            resizeMode="cover"
+            paused={videoPaused}
+            onLoad={(data: { duration: number }) => {
+              setVideoDuration(data.duration);
+            }}
+            onProgress={(data: { currentTime: number }) => {
+              handleVideoProgress(data.currentTime);
+            }}
+            onPlaybackStateChanged={(data: {
+              isPlaying: boolean;
+              isSeeking: boolean;
+            }) => {
+              isVideoPlayingRef.current = data.isPlaying;
+              if (!isGraphDraggingRef.current) {
+                setVideoPaused(!data.isPlaying);
+              }
+            }}
+          />
         ) : (
           <>
-            <Icon name="play-circle" color={dashboard.text} size={proportionalSize(42)} />
-            <Text style={s.videoFallback}>Video preview will appear after storage URL loads</Text>
+            <Icon
+              name="play-circle"
+              color={dashboard.text}
+              size={proportionalSize(42)}
+            />
+            <Text style={s.videoFallback}>
+              Video preview will appear after storage URL loads
+            </Text>
           </>
         )}
       </View>
 
-      <ContributionChart result={result} selectedIndex={selectedIndex} onSelect={setSelectedIndex} />
+      <ContributionChart
+        result={result}
+        scrubProgress={scrubProgress}
+        onScrub={handleGraphScrub}
+        onScrubStart={startGraphScrub}
+        onScrubEnd={endGraphScrub}
+        duration={videoDuration}
+      />
 
       <View style={s.row}>
-        <MuscleTile label="Finger" value={muscleUsage.finger} color={dashboard.blue} />
-        <MuscleTile label="Wrist" value={muscleUsage.wrist} color={dashboard.green} />
-        <MuscleTile label="Arm" value={muscleUsage.arm} color={dashboard.gold} />
+        <MuscleTile
+          label="Finger"
+          value={muscleUsage.finger}
+          color={dashboard.blue}
+        />
+        <MuscleTile
+          label="Wrist"
+          value={muscleUsage.wrist}
+          color={dashboard.green}
+        />
+        <MuscleTile
+          label="Arm"
+          value={muscleUsage.arm}
+          color={dashboard.gold}
+        />
       </View>
 
       <View style={s.approachPanel}>
@@ -341,7 +594,9 @@ function ResultsContent({
         </View>
         <View style={s.approachSide}>
           <Text style={s.eyebrow}>CONFIDENCE</Text>
-          <Text style={s.confidence}>{confidenceLevel} {Math.round(approach.confidence)}%</Text>
+          <Text style={s.confidence}>
+            {confidenceLevel} {Math.round(approach.confidence)}%
+          </Text>
         </View>
       </View>
 
@@ -357,9 +612,15 @@ function ResultsContent({
         ].map(([label, angles]) => (
           <View style={s.angleCard} key={label as string}>
             <Text style={s.angleTitle}>{label as string} hand</Text>
-            <Text style={s.angleText}>Bicep {Math.round((angles as any)?.bicep ?? 0)} deg</Text>
-            <Text style={s.angleText}>Forearm {Math.round((angles as any)?.forearm ?? 0)} deg</Text>
-            <Text style={s.angleText}>Wrist break {Math.round((angles as any)?.wristBreak ?? 0)} deg</Text>
+            <Text style={s.angleText}>
+              Bicep {Math.round((angles as any)?.bicep ?? 0)} deg
+            </Text>
+            <Text style={s.angleText}>
+              Forearm {Math.round((angles as any)?.forearm ?? 0)} deg
+            </Text>
+            <Text style={s.angleText}>
+              Wrist break {Math.round((angles as any)?.wristBreak ?? 0)} deg
+            </Text>
           </View>
         ))}
       </View>
@@ -405,7 +666,9 @@ function ResultsScreen() {
           projectName={sessionQuery.data?.projectName ?? ''}
         />
       ) : (
-        <Text style={styles.empty}>No result has been written for this session yet.</Text>
+        <Text style={styles.empty}>
+          No result has been written for this session yet.
+        </Text>
       )}
     </ScrollView>
   );
