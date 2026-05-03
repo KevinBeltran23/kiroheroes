@@ -7,6 +7,13 @@ from statistics import mean, pstdev
 Point = tuple[float, float]
 FrameMetric = dict[str, float]
 
+LEFT_BICEP_RANGE: tuple[float, float] = (10.5, 150.8)
+LEFT_FOREARM_RANGE: tuple[float, float] = (164.5, 23.9)
+LEFT_WRIST_RANGE: tuple[float, float] = (132.7, 90.0)
+RIGHT_BICEP_RANGE: tuple[float, float] = (25.4, 158.6)
+RIGHT_FOREARM_RANGE: tuple[float, float] = (142.2, 20.8)
+RIGHT_WRIST_RANGE: tuple[float, float] = (178.8, 68.2)
+
 
 def _valid_y(points: list[Point]) -> list[float]:
     return [point[1] for point in points if not math.isnan(point[1])]
@@ -37,6 +44,21 @@ def _angle(a: Point | None, b: Point | None, c: Point | None) -> float:
 
     cosine = max(-1.0, min(1.0, (ba[0] * bc[0] + ba[1] * bc[1]) / (mag_ba * mag_bc)))
     return math.degrees(math.acos(cosine))
+
+
+def _orientation_from_vertical(a: Point | None, b: Point | None) -> float:
+    if not (_is_valid(a) and _is_valid(b)):
+        return float("nan")
+    dx = b[0] - a[0]
+    dy = b[1] - a[1]
+    return abs(math.degrees(math.atan2(dx, dy)))
+
+
+def _to_percent(angle: float, lo: float, hi: float) -> float:
+    if math.isnan(angle):
+        return float("nan")
+    clamped = max(min(lo, hi), min(max(lo, hi), angle))
+    return max(0.0, min(100.0, (clamped - lo) / (hi - lo) * 100.0))
 
 
 def _series_delta(values: list[float]) -> list[float]:
@@ -164,6 +186,52 @@ def _hand_angles(
     }
 
 
+def _hand_activation_percentages(
+    trajectories: dict[str, list[Point]], side: str
+) -> dict[str, list[float]]:
+    shoulder = trajectories.get(f"{side}_shoulder", [])
+    elbow = trajectories.get(f"{side}_elbow", [])
+    wrist = trajectories.get(f"{side}_wrist", [])
+    index_tip = trajectories.get(f"{side}_index", [])
+    frame_count = max(len(shoulder), len(elbow), len(wrist), len(index_tip))
+    if side == "left":
+        bicep_range = LEFT_BICEP_RANGE
+        forearm_range = LEFT_FOREARM_RANGE
+        wrist_range = LEFT_WRIST_RANGE
+    else:
+        bicep_range = RIGHT_BICEP_RANGE
+        forearm_range = RIGHT_FOREARM_RANGE
+        wrist_range = RIGHT_WRIST_RANGE
+
+    bicep: list[float] = []
+    forearm: list[float] = []
+    wrist_break: list[float] = []
+
+    for index in range(frame_count):
+        shoulder_point = shoulder[index] if index < len(shoulder) else None
+        elbow_point = elbow[index] if index < len(elbow) else None
+        wrist_point = wrist[index] if index < len(wrist) else None
+        index_point = index_tip[index] if index < len(index_tip) else None
+
+        bicep.append(
+            _to_percent(
+                _orientation_from_vertical(shoulder_point, elbow_point),
+                *bicep_range,
+            )
+        )
+        forearm.append(
+            _to_percent(
+                _angle(shoulder_point, elbow_point, wrist_point),
+                *forearm_range,
+            )
+        )
+        wrist_break.append(
+            _to_percent(_angle(elbow_point, wrist_point, index_point), *wrist_range)
+        )
+
+    return {"bicep": bicep, "forearm": forearm, "wristBreak": wrist_break}
+
+
 def _approach_category(
     arm: float, wrist: float, finger: float, wrist_break: float
 ) -> dict[str, object]:
@@ -238,6 +306,8 @@ def compute_metrics(trajectories: dict[str, list[Point]], sample_fps: float) -> 
 
     left_angles = _hand_angles(trajectories, "left")
     right_angles = _hand_angles(trajectories, "right")
+    left_activation = _hand_activation_percentages(trajectories, "left")
+    right_activation = _hand_activation_percentages(trajectories, "right")
     elbow_motion = _series_delta(left_angles["elbow"]) + _series_delta(
         right_angles["elbow"]
     )
@@ -251,10 +321,13 @@ def compute_metrics(trajectories: dict[str, list[Point]], sample_fps: float) -> 
         right_angles["handSpread"]
     )
 
+    bicep_activation = left_activation["bicep"] + right_activation["bicep"]
+    forearm_activation = left_activation["forearm"] + right_activation["forearm"]
+    wrist_activation = left_activation["wristBreak"] + right_activation["wristBreak"]
     contribution_series = _independent_contribution_series(
         finger_motion,
-        wrist_motion,
-        elbow_motion + shoulder_motion,
+        wrist_activation,
+        bicep_activation + forearm_activation,
     )
     muscle_usage = {
         "finger": round(_average(contribution_series["finger"]), 1),
@@ -289,21 +362,25 @@ def compute_metrics(trajectories: dict[str, list[Point]], sample_fps: float) -> 
         "approach": approach,
         "angles": {
             "left": {
-                "bicep": round(_average(left_angles["shoulder"]), 1),
-                "forearm": round(_average(left_angles["elbow"]), 1),
-                "wristBreak": round(_average(left_angles["wristBreak"]), 1),
+                "bicep": round(_average(left_activation["bicep"]), 1),
+                "forearm": round(_average(left_activation["forearm"]), 1),
+                "wristBreak": round(_average(left_activation["wristBreak"]), 1),
             },
             "right": {
-                "bicep": round(_average(right_angles["shoulder"]), 1),
-                "forearm": round(_average(right_angles["elbow"]), 1),
-                "wristBreak": round(_average(right_angles["wristBreak"]), 1),
+                "bicep": round(_average(right_activation["bicep"]), 1),
+                "forearm": round(_average(right_activation["forearm"]), 1),
+                "wristBreak": round(_average(right_activation["wristBreak"]), 1),
             },
         },
         "frameMetrics": {
             "finger": contribution_series["finger"],
             "wrist": contribution_series["wrist"],
             "arm": contribution_series["arm"],
-            "leftWristBreak": _resample(left_angles["wristBreak"]),
-            "rightWristBreak": _resample(right_angles["wristBreak"]),
+            "leftBicep": _resample(left_activation["bicep"]),
+            "rightBicep": _resample(right_activation["bicep"]),
+            "leftForearm": _resample(left_activation["forearm"]),
+            "rightForearm": _resample(right_activation["forearm"]),
+            "leftWristBreak": _resample(left_activation["wristBreak"]),
+            "rightWristBreak": _resample(right_activation["wristBreak"]),
         },
     }

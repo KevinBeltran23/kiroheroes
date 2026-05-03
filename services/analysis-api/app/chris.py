@@ -15,13 +15,31 @@ import mediapipe as mp
 # Reference images: set_position.png (0%), bicep_100.png, forearm_100.png,
 #                   wrist_break_100.png (100% per group).
 # ---------------------------------------------------------------------------
-LEFT_BICEP_RANGE:    tuple[float, float] = ( 10.5, 150.8)  # upper-arm elevation:  set_position → bicep_100
-LEFT_FOREARM_RANGE:  tuple[float, float] = (164.5,  23.9)  # elbow flexion:        set_position → forearm_100
-LEFT_WRIST_RANGE:    tuple[float, float] = (132.7,  90.0)  # wrist flexion:        set_position → estimated
+LEFT_BICEP_RANGE: tuple[float, float] = (
+    10.5,
+    150.8,
+)  # upper-arm elevation:  set_position → bicep_100
+LEFT_FOREARM_RANGE: tuple[float, float] = (
+    164.5,
+    23.9,
+)  # elbow flexion:        set_position → forearm_100
+LEFT_WRIST_RANGE: tuple[float, float] = (
+    132.7,
+    90.0,
+)  # wrist flexion:        set_position → estimated
 
-RIGHT_BICEP_RANGE:   tuple[float, float] = ( 25.4, 158.6)  # upper-arm elevation:  set_position → bicep_100
-RIGHT_FOREARM_RANGE: tuple[float, float] = (142.2,  20.8)  # elbow flexion:        set_position → forearm_100
-RIGHT_WRIST_RANGE:   tuple[float, float] = (178.8,  68.2)  # wrist flexion:        set_position → wrist_break_100
+RIGHT_BICEP_RANGE: tuple[float, float] = (
+    25.4,
+    158.6,
+)  # upper-arm elevation:  set_position → bicep_100
+RIGHT_FOREARM_RANGE: tuple[float, float] = (
+    142.2,
+    20.8,
+)  # elbow flexion:        set_position → forearm_100
+RIGHT_WRIST_RANGE: tuple[float, float] = (
+    178.8,
+    68.2,
+)  # wrist flexion:        set_position → wrist_break_100
 # ---------------------------------------------------------------------------
 
 
@@ -200,31 +218,61 @@ def preview_pose(video_path: Path, max_width: int, output_path: Path | None) -> 
 
                 # (label_prefix, shoulder, elbow, wrist, index, color, b_range, f_range, w_range)
                 sides = [
-                    ("L", 11, 13, 15, 19, (0, 255, 0),   LEFT_BICEP_RANGE,  LEFT_FOREARM_RANGE,  LEFT_WRIST_RANGE),
-                    ("R", 12, 14, 16, 20, (0, 255, 255), RIGHT_BICEP_RANGE, RIGHT_FOREARM_RANGE, RIGHT_WRIST_RANGE),
+                    (
+                        "L",
+                        11,
+                        13,
+                        15,
+                        19,
+                        (0, 255, 0),
+                        LEFT_BICEP_RANGE,
+                        LEFT_FOREARM_RANGE,
+                        LEFT_WRIST_RANGE,
+                    ),
+                    (
+                        "R",
+                        12,
+                        14,
+                        16,
+                        20,
+                        (0, 255, 255),
+                        RIGHT_BICEP_RANGE,
+                        RIGHT_FOREARM_RANGE,
+                        RIGHT_WRIST_RANGE,
+                    ),
                 ]
                 for prefix, si, ei, wi, ii, color, b_range, f_range, w_range in sides:
                     shoulder = _px(si)
-                    elbow    = _px(ei)
-                    wrist    = _px(wi)
-                    index    = _px(ii)
-                    midpt    = ((elbow[0] + wrist[0]) / 2, (elbow[1] + wrist[1]) / 2)
+                    elbow = _px(ei)
+                    wrist = _px(wi)
+                    index = _px(ii)
+                    midpt = ((elbow[0] + wrist[0]) / 2, (elbow[1] + wrist[1]) / 2)
 
                     def vis(*idxs):
                         return all(lm[i].visibility >= 0.35 for i in idxs)
 
                     # Each metric checked independently — one occluded joint won't hide the others
                     if vis(si, ei):
-                        bicep_pct = _to_pct(_forearm_orientation(shoulder, elbow), *b_range)
-                        _draw_angle_marker(frame, elbow, f"{prefix}Bicep", bicep_pct, color)
+                        bicep_pct = _to_pct(
+                            _forearm_orientation(shoulder, elbow), *b_range
+                        )
+                        _draw_angle_marker(
+                            frame, elbow, f"{prefix}Bicep", bicep_pct, color
+                        )
 
                     if vis(si, ei, wi):
-                        forearm_pct = _to_pct(_angle_3pt(shoulder, elbow, wrist), *f_range)
-                        _draw_angle_marker(frame, midpt, f"{prefix}Forearm", forearm_pct, color)
+                        forearm_pct = _to_pct(
+                            _angle_3pt(shoulder, elbow, wrist), *f_range
+                        )
+                        _draw_angle_marker(
+                            frame, midpt, f"{prefix}Forearm", forearm_pct, color
+                        )
 
                     if vis(ei, wi, ii):
                         wrist_pct = _to_pct(_angle_3pt(elbow, wrist, index), *w_range)
-                        _draw_angle_marker(frame, wrist, f"{prefix}Wrist", wrist_pct, color)
+                        _draw_angle_marker(
+                            frame, wrist, f"{prefix}Wrist", wrist_pct, color
+                        )
 
             frame = _resize_for_preview(frame, max_width)
 
