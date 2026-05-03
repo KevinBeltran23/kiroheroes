@@ -73,8 +73,7 @@ function HomeScreen() {
   // Split sessions into active (in-progress) and recent (completed/failed/draft)
   const activeSessions = sessions.filter(s => isActiveJob(s.status));
   const recentSessions = sessions
-    .filter(s => !isActiveJob(s.status))
-    .slice(0, 5);
+    .filter(s => !isActiveJob(s.status));
 
   const s = StyleSheet.create({
     container: {
