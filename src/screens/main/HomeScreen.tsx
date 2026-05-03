@@ -27,13 +27,13 @@ type HomeNavigation = CompositeNavigationProp<
 >;
 
 const ui = {
-  bg: '#070A0E',
-  panel: '#10151B',
-  border: '#27313B',
-  text: '#F4F7FA',
-  muted: '#9AA5B1',
-  gold: '#F2B705',
-  blue: '#2E8BFF',
+  bg: '#060A10',
+  panel: '#0D1219',
+  border: '#1A2233',
+  text: '#F0F2F5',
+  muted: '#7B8BA3',
+  blue: '#3B7BF6',
+  accent: '#3B7BF6',
 };
 
 const exerciseLabels: Record<AnalysisSession['exerciseType'], string> = {
@@ -65,7 +65,7 @@ function HomeScreen() {
       paddingTop: scaleHeight(58),
     },
     eyebrow: {
-      color: ui.gold,
+      color: ui.accent,
       fontSize: scaleFont(12),
       fontWeight: '900',
       marginBottom: scaleHeight(7),
@@ -146,7 +146,7 @@ function HomeScreen() {
 
       <Text style={s.sectionTitle}>History</Text>
       {isLoading ? (
-        <ActivityIndicator color={ui.gold} />
+        <ActivityIndicator color={ui.accent} />
       ) : (
         <FlatList
           data={sessions.slice(0, 5)}

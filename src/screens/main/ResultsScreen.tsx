@@ -24,13 +24,13 @@ import MovementTimelineChart, {
 } from '../../components/charts/MovementTimelineChart';
 
 const dashboard = {
-  bg: '#070A0E',
-  panel: '#10151B',
-  panel2: '#151B22',
-  border: '#27313B',
-  text: '#F4F7FA',
-  muted: '#9AA5B1',
-  blue: '#2E8BFF',
+  bg: '#060A10',
+  panel: '#0D1219',
+  panel2: '#111820',
+  border: '#1A2233',
+  text: '#F0F2F5',
+  muted: '#7B8BA3',
+  blue: '#3B7BF6',
   green: '#38C55D',
   gold: '#F2B705',
 };

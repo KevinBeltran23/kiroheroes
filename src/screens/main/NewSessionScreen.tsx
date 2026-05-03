@@ -166,15 +166,15 @@ function NewSessionScreen() {
       gap: proportionalSize(6),
     },
     segmentActive: {
-      borderColor: '#F2B705',
-      backgroundColor: '#161A1F',
+      borderColor: colors.primary,
+      backgroundColor: colors.primaryLight,
     },
     segmentText: {
       color: colors.textSecondary,
       fontSize: scaleFont(13),
       fontWeight: '700',
     },
-    segmentTextActive: { color: '#F2B705' },
+    segmentTextActive: { color: colors.primary },
     button: { marginTop: scaleHeight(22) },
   });
 
@@ -252,7 +252,7 @@ function NewSessionScreen() {
                 <Icon
                   name={icon as React.ComponentProps<typeof Icon>['name']}
                   size={proportionalSize(17)}
-                  color={active ? '#F2B705' : colors.textSecondary}
+                  color={active ? colors.primary : colors.textSecondary}
                 />
                 <Text style={[s.segmentText, active ? s.segmentTextActive : null]}>
                   {label}
