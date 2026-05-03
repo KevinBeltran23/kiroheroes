@@ -1,9 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  LayoutChangeEvent,
-  NativeTouchEvent,
-  PanResponder,
   ScrollView,
   StyleSheet,
   Text,
@@ -21,6 +18,9 @@ import {
 } from '../../services/store/analysisQueries';
 import { getStorageDownloadUrl } from '../../services/firebase';
 import { AnalysisResult } from '../../types';
+import MovementTimelineChart, {
+  MovementTimelinePoint,
+} from '../../components/charts/MovementTimelineChart';
 
 const dashboard = {
   bg: '#070A0E',
@@ -64,238 +64,6 @@ function useVideoUrl(path?: string | null) {
   }, [path]);
 
   return url;
-}
-
-function ContributionChart({
-  result,
-  scrubProgress,
-  onScrub,
-  onScrubStart,
-  onScrubEnd,
-  duration,
-}: {
-  result: AnalysisResult;
-  scrubProgress: number;
-  onScrub: (progress: number) => void;
-  onScrubStart: () => void;
-  onScrubEnd: () => void;
-  duration: number;
-}) {
-  const { scaleHeight, proportionalSize, scaleFont } = useResponsiveStyles();
-  const [width, setWidth] = useState(1);
-  const chartRef = useRef<View>(null);
-  const chartLeft = useRef(0);
-  const finger = result.chartSeries.fingerUsage ?? [
-    28, 35, 31, 33, 30, 37, 34, 36,
-  ];
-  const wrist = result.chartSeries.wristUsage ?? [
-    60, 66, 70, 68, 72, 69, 71, 68,
-  ];
-  const arm = result.chartSeries.armUsage ?? [18, 13, 16, 12, 15, 17, 14, 18];
-  const count = Math.max(finger.length, wrist.length, arm.length, 1);
-  const groupWidth = Math.max(5, width / count - proportionalSize(2));
-  const barWidth = Math.max(1, groupWidth / 4);
-
-  const scrubFromX = (x: number) => {
-    const clamped = Math.min(width, Math.max(0, x));
-    onScrub(clamped / Math.max(width, 1));
-  };
-
-  const measureAndSelect = (event: NativeTouchEvent) => {
-    chartRef.current?.measure((_x, _y, measuredWidth, _h, pageX) => {
-      chartLeft.current = pageX;
-      setWidth(Math.max(1, measuredWidth));
-      scrubFromX(event.pageX - pageX);
-    });
-  };
-
-  const selectFromPageX = (pageX: number) => {
-    const relativeX = pageX - chartLeft.current;
-    scrubFromX(relativeX);
-  };
-
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: () => true,
-        onPanResponderGrant: event => {
-          onScrubStart();
-          measureAndSelect(event.nativeEvent);
-        },
-        onPanResponderMove: (_event, gestureState) => {
-          selectFromPageX(gestureState.moveX);
-        },
-        onPanResponderRelease: () => {
-          onScrubEnd();
-        },
-        onPanResponderTerminate: () => {
-          onScrubEnd();
-        },
-        onPanResponderTerminationRequest: () => false,
-      }),
-    [count, onScrubEnd, onScrubStart, width],
-  );
-
-  const onLayout = (event: LayoutChangeEvent) => {
-    setWidth(Math.max(1, event.nativeEvent.layout.width));
-    chartRef.current?.measure((_x, _y, _w, _h, pageX) => {
-      chartLeft.current = pageX;
-    });
-  };
-
-  const s = StyleSheet.create({
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginTop: scaleHeight(12),
-      marginBottom: scaleHeight(6),
-    },
-    title: {
-      color: dashboard.text,
-      fontSize: scaleFont(15),
-      fontWeight: '800',
-    },
-    legend: {
-      flexDirection: 'row',
-      justifyContent: 'space-around',
-      marginBottom: scaleHeight(6),
-    },
-    legendItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: proportionalSize(5),
-    },
-    dot: {
-      width: proportionalSize(7),
-      height: proportionalSize(7),
-      borderRadius: 99,
-    },
-    legendText: {
-      color: dashboard.text,
-      fontSize: scaleFont(12),
-      fontWeight: '700',
-    },
-    chart: {
-      height: scaleHeight(96),
-      borderBottomWidth: 1,
-      borderBottomColor: dashboard.border,
-      borderTopWidth: 1,
-      borderTopColor: '#1A222B',
-      flexDirection: 'row',
-      alignItems: 'flex-end',
-      position: 'relative',
-      paddingTop: scaleHeight(8),
-    },
-    stack: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'flex-end',
-      height: '100%',
-      marginRight: proportionalSize(2),
-      gap: proportionalSize(1),
-    },
-    bar: { borderRadius: proportionalSize(2), width: barWidth },
-    marker: {
-      position: 'absolute',
-      top: 0,
-      bottom: 0,
-      width: proportionalSize(2),
-      backgroundColor: dashboard.text,
-    },
-    markerKnob: {
-      position: 'absolute',
-      top: -proportionalSize(4),
-      width: proportionalSize(9),
-      height: proportionalSize(9),
-      borderRadius: 99,
-      backgroundColor: dashboard.text,
-    },
-    axis: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginTop: scaleHeight(5),
-    },
-    axisText: { color: dashboard.muted, fontSize: scaleFont(11) },
-  });
-
-  const markerLeft = Math.min(width - 2, Math.max(0, scrubProgress * width));
-  const axisEnd = duration > 0 ? duration : count;
-  const formatTime = (seconds: number) =>
-    `${seconds.toFixed(seconds < 10 ? 1 : 0)}s`;
-
-  return (
-    <>
-      <View style={s.header}>
-        <Text style={s.title}>Contribution Over Time</Text>
-        <Icon
-          name="information-outline"
-          size={proportionalSize(17)}
-          color={dashboard.muted}
-        />
-      </View>
-      <View style={s.legend}>
-        {[
-          ['Finger', dashboard.blue],
-          ['Wrist', dashboard.green],
-          ['Arm', dashboard.gold],
-        ].map(([label, color]) => (
-          <View style={s.legendItem} key={label}>
-            <View style={[s.dot, { backgroundColor: color }]} />
-            <Text style={s.legendText}>{label}</Text>
-          </View>
-        ))}
-      </View>
-      <View
-        ref={chartRef}
-        style={s.chart}
-        onLayout={onLayout}
-        {...panResponder.panHandlers}
-      >
-        {Array.from({ length: count }).map((_, index) => (
-          <View key={index} style={[s.stack, { width: groupWidth }]}>
-            <View
-              style={[
-                s.bar,
-                {
-                  height: `${Math.max(4, arm[index] ?? 0)}%`,
-                  backgroundColor: dashboard.gold,
-                },
-              ]}
-            />
-            <View
-              style={[
-                s.bar,
-                {
-                  height: `${Math.max(4, wrist[index] ?? 0)}%`,
-                  backgroundColor: dashboard.green,
-                },
-              ]}
-            />
-            <View
-              style={[
-                s.bar,
-                {
-                  height: `${Math.max(4, finger[index] ?? 0)}%`,
-                  backgroundColor: dashboard.blue,
-                },
-              ]}
-            />
-          </View>
-        ))}
-        <View style={[s.marker, { left: markerLeft }]} />
-        <View
-          style={[s.markerKnob, { left: markerLeft - proportionalSize(4) }]}
-        />
-      </View>
-      <View style={s.axis}>
-        <Text style={s.axisText}>0s</Text>
-        <Text style={s.axisText}>{formatTime(axisEnd / 2)}</Text>
-        <Text style={s.axisText}>{formatTime(axisEnd)}</Text>
-      </View>
-    </>
-  );
 }
 
 function MuscleTile({
@@ -348,6 +116,7 @@ function ResultsContent({
   const [scrubProgress, setScrubProgress] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
   const [videoPaused, setVideoPaused] = useState(true);
+  const [videoFrameRate, setVideoFrameRate] = useState(30);
   const isGraphDraggingRef = useRef(false);
   const isVideoPlayingRef = useRef(false);
   const wasPlayingBeforeGraphDragRef = useRef(false);
@@ -377,11 +146,50 @@ function ResultsContent({
   );
   const selectedIndex = Math.round(scrubProgress * Math.max(frameCount - 1, 1));
   const scrubSeconds = scrubProgress * videoDuration;
+  const totalVideoFrames = Math.max(
+    1,
+    Math.round(videoDuration * videoFrameRate),
+  );
+  const chartData = useMemo<MovementTimelinePoint[]>(() => {
+    const finger = result.chartSeries.fingerUsage ?? [
+      28, 35, 31, 33, 30, 37, 34, 36,
+    ];
+    const wrist = result.chartSeries.wristUsage ?? [
+      60, 66, 70, 68, 72, 69, 71, 68,
+    ];
+    const arm = result.chartSeries.armUsage ?? [18, 13, 16, 12, 15, 17, 14, 18];
+    const count = Math.max(finger.length, wrist.length, arm.length, 1);
+    const timelineDuration = videoDuration || count - 1 || 1;
+
+    return Array.from({ length: count }).map((_, index) => ({
+      time:
+        count === 1 ? 0 : timelineDuration * (index / Math.max(count - 1, 1)),
+      finger: finger[index] ?? finger[finger.length - 1] ?? 0,
+      wrist: wrist[index] ?? wrist[wrist.length - 1] ?? 0,
+      arm: arm[index] ?? arm[arm.length - 1] ?? 0,
+    }));
+  }, [
+    result.chartSeries.armUsage,
+    result.chartSeries.fingerUsage,
+    result.chartSeries.wristUsage,
+    videoDuration,
+  ]);
 
   const handleGraphScrub = (progress: number) => {
-    setScrubProgress(progress);
+    const frameIndex = Math.round(
+      Math.min(1, Math.max(0, progress / Math.max(videoDuration, 1))) *
+        totalVideoFrames,
+    );
+    const frameAccurateTime = videoDuration
+      ? Math.min(videoDuration, frameIndex / videoFrameRate)
+      : progress;
+    const normalizedProgress = videoDuration
+      ? frameAccurateTime / videoDuration
+      : frameAccurateTime /
+        Math.max(chartData[chartData.length - 1]?.time ?? 1, 1);
+    setScrubProgress(Math.min(1, Math.max(0, normalizedProgress)));
     if (videoDuration && videoRef.current) {
-      videoRef.current.seek(progress * videoDuration);
+      videoRef.current.seek(frameAccurateTime);
     }
   };
 
@@ -517,8 +325,9 @@ function ResultsContent({
         {projectName || 'Front Ensemble Block - Day 4'}
       </Text>
       <Text style={s.meta}>
-        Traditional grip analysis - {scrubSeconds.toFixed(1)}s - sample{' '}
-        {Math.max(1, selectedIndex + 1)}
+        Traditional grip analysis - {scrubSeconds.toFixed(2)}s - frame{' '}
+        {Math.min(totalVideoFrames, Math.round(scrubSeconds * videoFrameRate))}{' '}
+        / {totalVideoFrames} - sample {Math.max(1, selectedIndex + 1)}
       </Text>
 
       <View style={s.videoShell}>
@@ -560,13 +369,13 @@ function ResultsContent({
         )}
       </View>
 
-      <ContributionChart
-        result={result}
-        scrubProgress={scrubProgress}
+      <MovementTimelineChart
+        data={chartData}
+        currentTime={scrubSeconds}
+        duration={videoDuration || chartData[chartData.length - 1]?.time || 1}
         onScrub={handleGraphScrub}
         onScrubStart={startGraphScrub}
         onScrubEnd={endGraphScrub}
-        duration={videoDuration}
       />
 
       <View style={s.row}>
