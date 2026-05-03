@@ -329,7 +329,15 @@ def compute_metrics(trajectories: dict[str, list[Point]], sample_fps: float) -> 
         wrist_activation,
         bicep_activation + forearm_activation,
     )
+    section_series = {
+        "bicep": _resample(_normalize(bicep_activation)),
+        "forearm": _resample(_normalize(forearm_activation)),
+        "wristBreak": contribution_series["wrist"],
+    }
     muscle_usage = {
+        "bicep": round(_average(section_series["bicep"]), 1),
+        "forearm": round(_average(section_series["forearm"]), 1),
+        "wristBreak": round(_average(section_series["wristBreak"]), 1),
         "finger": round(_average(contribution_series["finger"]), 1),
         "wrist": round(_average(contribution_series["wrist"]), 1),
         "arm": round(_average(contribution_series["arm"]), 1),

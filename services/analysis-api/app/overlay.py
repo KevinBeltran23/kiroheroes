@@ -78,15 +78,17 @@ def _writer_for_path(
 
 def write_pose_overlay_video(video_path: Path, output_path: Path) -> Path:
     capture = cv2.VideoCapture(str(video_path))
+    capture.set(cv2.CAP_PROP_ORIENTATION_AUTO, 1)
     if not capture.isOpened():
         raise ValueError("Unable to open uploaded video for overlay.")
 
     fps = capture.get(cv2.CAP_PROP_FPS) or 30.0
-    width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH) or 0)
-    height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0)
-    if width <= 0 or height <= 0:
+    ok, first_frame = capture.read()
+    if not ok:
         capture.release()
-        raise ValueError("Unable to read uploaded video dimensions.")
+        raise ValueError("Unable to read uploaded video for overlay.")
+
+    height, width = first_frame.shape[:2]
 
     writer = _writer_for_path(output_path, fps, width, height)
     pose = mp.solutions.pose.Pose(
@@ -101,10 +103,10 @@ def write_pose_overlay_video(video_path: Path, output_path: Path) -> Path:
     styles = mp.solutions.drawing_styles
 
     try:
+        pending_frame = first_frame
         while True:
-            ok, frame = capture.read()
-            if not ok:
-                break
+            frame = pending_frame
+            pending_frame = None
 
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             result = pose.process(rgb)
@@ -188,6 +190,9 @@ def write_pose_overlay_video(video_path: Path, output_path: Path) -> Path:
                         _draw_label(frame, wrist, f"{prefix} Wrist", wrist_break, color)
 
             writer.write(frame)
+            ok, pending_frame = capture.read()
+            if not ok:
+                break
     finally:
         pose.close()
         capture.release()
