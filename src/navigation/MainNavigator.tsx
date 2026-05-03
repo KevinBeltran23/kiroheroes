@@ -6,7 +6,6 @@ import { useColors } from '../hooks/useColors';
 import { useResponsiveStyles } from '../hooks/useResponsiveStyles';
 import HomeScreen from '../screens/main/HomeScreen';
 import NewSessionScreen from '../screens/main/NewSessionScreen';
-import HistoryScreen from '../screens/main/HistoryScreen';
 import SettingsScreen from '../screens/main/SettingsScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -60,14 +59,6 @@ export function MainNavigator() {
         options={{
           title: 'Analyze',
           tabBarIcon: props => <TabBarIcon name="plus-circle" {...props} />,
-        }}
-      />
-      <Tab.Screen
-        name="HistoryTab"
-        component={HistoryScreen}
-        options={{
-          title: 'History',
-          tabBarIcon: props => <TabBarIcon name="history" {...props} />,
         }}
       />
       <Tab.Screen

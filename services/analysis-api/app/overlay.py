@@ -81,6 +81,16 @@ def _writer_for_path(
 def _mux_original_audio(
     *, original_video_path: Path, silent_overlay_path: Path, output_path: Path
 ) -> Path:
+    """Combine the silent overlay video with the original audio track.
+
+    Uses ``-c:v copy`` to avoid re-encoding the video stream and ``-c:a aac``
+    to ensure the audio codec is compatible with the mp4 container.  The
+    ``-movflags +faststart`` flag moves the moov atom to the beginning of the
+    file so the video can start playing before it is fully downloaded.
+
+    If ffmpeg is unavailable or the mux fails for any reason the silent
+    overlay is returned as-is so the pipeline never hard-fails on audio.
+    """
     command = [
         "ffmpeg",
         "-y",
@@ -96,12 +106,20 @@ def _mux_original_audio(
         "copy",
         "-c:a",
         "aac",
-        "-shortest",
+        "-b:a",
+        "128k",
+        "-movflags",
+        "+faststart",
+        "-fflags",
+        "+genpts",
         str(output_path),
     ]
     try:
-        subprocess.run(command, check=True, capture_output=True)
-    except (FileNotFoundError, subprocess.CalledProcessError):
+        result = subprocess.run(command, check=True, capture_output=True, timeout=120)
+    except (FileNotFoundError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+        # Log the failure so it's visible in Cloud Run logs
+        stderr = getattr(exc, "stderr", b"") or b""
+        print(f"[overlay] ffmpeg audio mux failed: {stderr.decode(errors='replace')}")
         shutil.copyfile(silent_overlay_path, output_path)
     return output_path
 
