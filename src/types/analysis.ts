@@ -102,6 +102,10 @@ export interface AnalysisResult {
     armUsage?: number[];
     leftWristBreak?: number[];
     rightWristBreak?: number[];
+    leftBicep?: number[];
+    rightBicep?: number[];
+    leftForearm?: number[];
+    rightForearm?: number[];
   };
   muscleUsage?: {
     finger: number;

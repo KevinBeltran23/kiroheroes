@@ -7,6 +7,13 @@ from statistics import mean, pstdev
 Point = tuple[float, float]
 FrameMetric = dict[str, float]
 
+LEFT_BICEP_RANGE: tuple[float, float] = (10.5, 150.8)
+LEFT_FOREARM_RANGE: tuple[float, float] = (164.5, 23.9)
+LEFT_WRIST_RANGE: tuple[float, float] = (132.7, 90.0)
+RIGHT_BICEP_RANGE: tuple[float, float] = (25.4, 158.6)
+RIGHT_FOREARM_RANGE: tuple[float, float] = (142.2, 20.8)
+RIGHT_WRIST_RANGE: tuple[float, float] = (178.8, 68.2)
+
 
 def _valid_y(points: list[Point]) -> list[float]:
     return [point[1] for point in points if not math.isnan(point[1])]
@@ -39,6 +46,21 @@ def _angle(a: Point | None, b: Point | None, c: Point | None) -> float:
     return math.degrees(math.acos(cosine))
 
 
+def _orientation_from_vertical(a: Point | None, b: Point | None) -> float:
+    if not (_is_valid(a) and _is_valid(b)):
+        return float("nan")
+    dx = b[0] - a[0]
+    dy = b[1] - a[1]
+    return abs(math.degrees(math.atan2(dx, dy)))
+
+
+def _to_percent(angle: float, lo: float, hi: float) -> float:
+    if math.isnan(angle):
+        return float("nan")
+    clamped = max(min(lo, hi), min(max(lo, hi), angle))
+    return max(0.0, min(100.0, (clamped - lo) / (hi - lo) * 100.0))
+
+
 def _series_delta(values: list[float]) -> list[float]:
     deltas: list[float] = [0.0]
     for index in range(1, len(values)):
@@ -56,7 +78,22 @@ def _normalize(values: list[float], multiplier: float = 1.0) -> list[float]:
     max_value = max(clean) if clean else 0.0
     if max_value <= 0:
         return [0.0 for _ in values]
-    return [round(max(0.0, min(100.0, (0.0 if math.isnan(value) else value) / max_value * 100 * multiplier)), 1) for value in values]
+    return [
+        round(
+            max(
+                0.0,
+                min(
+                    100.0,
+                    (0.0 if math.isnan(value) else value)
+                    / max_value
+                    * 100
+                    * multiplier,
+                ),
+            ),
+            1,
+        )
+        for value in values
+    ]
 
 
 def _range(values: list[float]) -> float:
@@ -81,14 +118,28 @@ def _resample(values: list[float], target_count: int = 48) -> list[float]:
     return output
 
 
-def _hand_angles(trajectories: dict[str, list[Point]], side: str) -> dict[str, list[float]]:
+def _independent_contribution_series(
+    finger: list[float], wrist: list[float], arm: list[float], target_count: int = 48
+) -> dict[str, list[float]]:
+    return {
+        "finger": _resample(_normalize(finger, multiplier=0.9), target_count),
+        "wrist": _resample(_normalize(wrist, multiplier=1.15), target_count),
+        "arm": _resample(_normalize(arm), target_count),
+    }
+
+
+def _hand_angles(
+    trajectories: dict[str, list[Point]], side: str
+) -> dict[str, list[float]]:
     shoulder = trajectories.get(f"{side}_shoulder", [])
     elbow = trajectories.get(f"{side}_elbow", [])
     wrist = trajectories.get(f"{side}_wrist", [])
     index_tip = trajectories.get(f"{side}_index", [])
     pinky = trajectories.get(f"{side}_pinky", [])
     thumb = trajectories.get(f"{side}_thumb", [])
-    frame_count = max(len(shoulder), len(elbow), len(wrist), len(index_tip), len(pinky), len(thumb))
+    frame_count = max(
+        len(shoulder), len(elbow), len(wrist), len(index_tip), len(pinky), len(thumb)
+    )
 
     elbow_angles: list[float] = []
     shoulder_angles: list[float] = []
@@ -104,12 +155,25 @@ def _hand_angles(trajectories: dict[str, list[Point]], side: str) -> dict[str, l
         thumb_point = thumb[index] if index < len(thumb) else None
 
         elbow_angles.append(_angle(shoulder_point, elbow_point, wrist_point))
-        shoulder_angles.append(_angle(elbow_point, shoulder_point, (shoulder_point[0], shoulder_point[1] - 0.2) if _is_valid(shoulder_point) else None))
-        wrist_break_angles.append(abs(180.0 - _angle(elbow_point, wrist_point, index_point)))
+        shoulder_angles.append(
+            _angle(
+                elbow_point,
+                shoulder_point,
+                (
+                    (shoulder_point[0], shoulder_point[1] - 0.2)
+                    if _is_valid(shoulder_point)
+                    else None
+                ),
+            )
+        )
+        wrist_break_angles.append(
+            abs(180.0 - _angle(elbow_point, wrist_point, index_point))
+        )
 
         if _is_valid(index_point) and _is_valid(pinky_point) and _is_valid(thumb_point):
             hand_spread.append(
-                math.dist(index_point, thumb_point) + math.dist(pinky_point, thumb_point)
+                math.dist(index_point, thumb_point)
+                + math.dist(pinky_point, thumb_point)
             )
         else:
             hand_spread.append(float("nan"))
@@ -122,7 +186,55 @@ def _hand_angles(trajectories: dict[str, list[Point]], side: str) -> dict[str, l
     }
 
 
-def _approach_category(arm: float, wrist: float, finger: float, wrist_break: float) -> dict[str, object]:
+def _hand_activation_percentages(
+    trajectories: dict[str, list[Point]], side: str
+) -> dict[str, list[float]]:
+    shoulder = trajectories.get(f"{side}_shoulder", [])
+    elbow = trajectories.get(f"{side}_elbow", [])
+    wrist = trajectories.get(f"{side}_wrist", [])
+    index_tip = trajectories.get(f"{side}_index", [])
+    frame_count = max(len(shoulder), len(elbow), len(wrist), len(index_tip))
+    if side == "left":
+        bicep_range = LEFT_BICEP_RANGE
+        forearm_range = LEFT_FOREARM_RANGE
+        wrist_range = LEFT_WRIST_RANGE
+    else:
+        bicep_range = RIGHT_BICEP_RANGE
+        forearm_range = RIGHT_FOREARM_RANGE
+        wrist_range = RIGHT_WRIST_RANGE
+
+    bicep: list[float] = []
+    forearm: list[float] = []
+    wrist_break: list[float] = []
+
+    for index in range(frame_count):
+        shoulder_point = shoulder[index] if index < len(shoulder) else None
+        elbow_point = elbow[index] if index < len(elbow) else None
+        wrist_point = wrist[index] if index < len(wrist) else None
+        index_point = index_tip[index] if index < len(index_tip) else None
+
+        bicep.append(
+            _to_percent(
+                _orientation_from_vertical(shoulder_point, elbow_point),
+                *bicep_range,
+            )
+        )
+        forearm.append(
+            _to_percent(
+                _angle(shoulder_point, elbow_point, wrist_point),
+                *forearm_range,
+            )
+        )
+        wrist_break.append(
+            _to_percent(_angle(elbow_point, wrist_point, index_point), *wrist_range)
+        )
+
+    return {"bicep": bicep, "forearm": forearm, "wristBreak": wrist_break}
+
+
+def _approach_category(
+    arm: float, wrist: float, finger: float, wrist_break: float
+) -> dict[str, object]:
     scores = {
         "Arm-Heavy": arm * 1.1,
         "Fulcrum Lift": max(finger, 100.0 - wrist) * 0.9,
@@ -150,7 +262,11 @@ def detect_stroke_peaks(y_values: list[float]) -> list[int]:
     if len(y_values) < 3:
         return peaks
     for index in range(1, len(y_values) - 1):
-        prev_y, current_y, next_y = y_values[index - 1], y_values[index], y_values[index + 1]
+        prev_y, current_y, next_y = (
+            y_values[index - 1],
+            y_values[index],
+            y_values[index + 1],
+        )
         if any(math.isnan(value) for value in (prev_y, current_y, next_y)):
             continue
         if current_y > prev_y and current_y > next_y:
@@ -184,25 +300,43 @@ def compute_metrics(trajectories: dict[str, list[Point]], sample_fps: float) -> 
         trajectories.get("right_shoulder", [])
     )
     posture_stability = _score_from_variation(shoulder_y, scale=2.0)
-    overall = mean([timing_score, symmetry_score, stroke_consistency, posture_stability])
+    overall = mean(
+        [timing_score, symmetry_score, stroke_consistency, posture_stability]
+    )
 
     left_angles = _hand_angles(trajectories, "left")
     right_angles = _hand_angles(trajectories, "right")
-    elbow_motion = _series_delta(left_angles["elbow"]) + _series_delta(right_angles["elbow"])
-    shoulder_motion = _series_delta(left_angles["shoulder"]) + _series_delta(right_angles["shoulder"])
-    wrist_motion = _series_delta(left_angles["wristBreak"]) + _series_delta(right_angles["wristBreak"])
-    finger_motion = _series_delta(left_angles["handSpread"]) + _series_delta(right_angles["handSpread"])
+    left_activation = _hand_activation_percentages(trajectories, "left")
+    right_activation = _hand_activation_percentages(trajectories, "right")
+    elbow_motion = _series_delta(left_angles["elbow"]) + _series_delta(
+        right_angles["elbow"]
+    )
+    shoulder_motion = _series_delta(left_angles["shoulder"]) + _series_delta(
+        right_angles["shoulder"]
+    )
+    wrist_motion = _series_delta(left_angles["wristBreak"]) + _series_delta(
+        right_angles["wristBreak"]
+    )
+    finger_motion = _series_delta(left_angles["handSpread"]) + _series_delta(
+        right_angles["handSpread"]
+    )
 
-    arm_activity = _average(_normalize(elbow_motion + shoulder_motion))
-    wrist_activity = _average(_normalize(wrist_motion, multiplier=1.15))
-    finger_activity = _average(_normalize(finger_motion, multiplier=0.9))
-    total_activity = arm_activity + wrist_activity + finger_activity or 1.0
+    bicep_activation = left_activation["bicep"] + right_activation["bicep"]
+    forearm_activation = left_activation["forearm"] + right_activation["forearm"]
+    wrist_activation = left_activation["wristBreak"] + right_activation["wristBreak"]
+    contribution_series = _independent_contribution_series(
+        finger_motion,
+        wrist_activation,
+        bicep_activation + forearm_activation,
+    )
     muscle_usage = {
-        "finger": round(finger_activity / total_activity * 100.0, 1),
-        "wrist": round(wrist_activity / total_activity * 100.0, 1),
-        "arm": round(arm_activity / total_activity * 100.0, 1),
+        "finger": round(_average(contribution_series["finger"]), 1),
+        "wrist": round(_average(contribution_series["wrist"]), 1),
+        "arm": round(_average(contribution_series["arm"]), 1),
     }
-    wrist_break_mean = (_average(left_angles["wristBreak"]) + _average(right_angles["wristBreak"])) / 2.0
+    wrist_break_mean = (
+        _average(left_angles["wristBreak"]) + _average(right_angles["wristBreak"])
+    ) / 2.0
     approach = _approach_category(
         muscle_usage["arm"],
         muscle_usage["wrist"],
@@ -228,21 +362,25 @@ def compute_metrics(trajectories: dict[str, list[Point]], sample_fps: float) -> 
         "approach": approach,
         "angles": {
             "left": {
-                "bicep": round(_average(left_angles["shoulder"]), 1),
-                "forearm": round(_average(left_angles["elbow"]), 1),
-                "wristBreak": round(_average(left_angles["wristBreak"]), 1),
+                "bicep": round(_average(left_activation["bicep"]), 1),
+                "forearm": round(_average(left_activation["forearm"]), 1),
+                "wristBreak": round(_average(left_activation["wristBreak"]), 1),
             },
             "right": {
-                "bicep": round(_average(right_angles["shoulder"]), 1),
-                "forearm": round(_average(right_angles["elbow"]), 1),
-                "wristBreak": round(_average(right_angles["wristBreak"]), 1),
+                "bicep": round(_average(right_activation["bicep"]), 1),
+                "forearm": round(_average(right_activation["forearm"]), 1),
+                "wristBreak": round(_average(right_activation["wristBreak"]), 1),
             },
         },
         "frameMetrics": {
-            "finger": _resample(_normalize(finger_motion, multiplier=0.9)),
-            "wrist": _resample(_normalize(wrist_motion, multiplier=1.15)),
-            "arm": _resample(_normalize(elbow_motion + shoulder_motion)),
-            "leftWristBreak": _resample(left_angles["wristBreak"]),
-            "rightWristBreak": _resample(right_angles["wristBreak"]),
+            "finger": contribution_series["finger"],
+            "wrist": contribution_series["wrist"],
+            "arm": contribution_series["arm"],
+            "leftBicep": _resample(left_activation["bicep"]),
+            "rightBicep": _resample(right_activation["bicep"]),
+            "leftForearm": _resample(left_activation["forearm"]),
+            "rightForearm": _resample(right_activation["forearm"]),
+            "leftWristBreak": _resample(left_activation["wristBreak"]),
+            "rightWristBreak": _resample(right_activation["wristBreak"]),
         },
     }
