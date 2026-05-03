@@ -16,6 +16,7 @@ from .firebase_client import (
 from .landmarks import extract_pose_trajectories
 from .metrics import compute_metrics
 from .models import AnalyzeRequest, HealthResponse
+from .overlay import write_pose_overlay_video
 from .results import shape_result
 from .video_io import sample_frames, write_thumbnail
 
@@ -49,11 +50,18 @@ def analyze(request: AnalyzeRequest) -> dict[str, str]:
             thumbnail_path = f"users/{request.userId}/sessions/{request.sessionId}/artifacts/thumbnail.jpg"
             upload_artifact(thumbnail_local, thumbnail_path)
 
+            overlay_local = write_pose_overlay_video(
+                video_path, work_dir / "overlay.mp4"
+            )
+            overlay_path = f"users/{request.userId}/sessions/{request.sessionId}/artifacts/overlay.mp4"
+            upload_artifact(overlay_local, overlay_path)
+
             result = shape_result(
                 metrics,
                 session_id=request.sessionId,
                 user_id=request.userId,
                 thumbnail_path=thumbnail_path,
+                overlay_video_path=overlay_path,
             )
             write_result(result)
 
@@ -63,6 +71,7 @@ def analyze(request: AnalyzeRequest) -> dict[str, str]:
                 "status": "completed",
                 "completedAt": firestore.SERVER_TIMESTAMP,
                 "thumbnailPath": thumbnail_path,
+                "overlayVideoPath": overlay_path,
                 "errorMessage": None,
             },
         )

@@ -517,7 +517,9 @@ function ResultsScreen() {
   const query = useAnalysisResultQuery(route.params.sessionId);
   const sessionQuery = useSessionQuery(route.params.sessionId);
   const result = live.result ?? query.data;
+  const overlayVideoUrl = useVideoUrl(result?.artifactPaths?.overlayVideoPath);
   const rawVideoUrl = useVideoUrl(sessionQuery.data?.rawVideoPath);
+  const previewVideoUrl = overlayVideoUrl ?? rawVideoUrl;
 
   const styles = useMemo(
     () =>
@@ -544,7 +546,7 @@ function ResultsScreen() {
       ) : result ? (
         <ResultsContent
           result={result}
-          videoUrl={rawVideoUrl}
+          videoUrl={previewVideoUrl}
           projectName={sessionQuery.data?.projectName ?? ''}
         />
       ) : (

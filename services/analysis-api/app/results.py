@@ -2,7 +2,12 @@ from __future__ import annotations
 
 
 def shape_result(
-    metrics: dict, *, session_id: str, user_id: str, thumbnail_path: str | None
+    metrics: dict,
+    *,
+    session_id: str,
+    user_id: str,
+    thumbnail_path: str | None,
+    overlay_video_path: str | None = None,
 ) -> dict:
     scores = metrics["scores"]
     height_delta = metrics["heightDelta"]
@@ -161,5 +166,8 @@ def shape_result(
         "muscleUsage": muscle_usage,
         "approach": approach,
         "angles": metrics.get("angles", {}),
-        "artifactPaths": {"thumbnailPath": thumbnail_path},
+        "artifactPaths": {
+            "thumbnailPath": thumbnail_path,
+            "overlayVideoPath": overlay_video_path,
+        },
     }
