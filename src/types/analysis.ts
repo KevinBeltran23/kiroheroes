@@ -15,6 +15,7 @@ export interface SummaryScores {
   symmetry: number;
   strokeConsistency: number;
   postureStability: number;
+  armControl?: number;
   overall: number;
 }
 
@@ -44,7 +45,7 @@ export interface TimelineEvent {
 
 export interface FeedbackItem {
   id: string;
-  type: 'timing' | 'symmetry' | 'height' | 'path' | 'posture';
+  type: 'timing' | 'symmetry' | 'height' | 'path' | 'posture' | 'arm';
   severity: FindingSeverity;
   title: string;
   explanation: string;
@@ -100,6 +101,12 @@ export interface AnalysisResult {
     fingerUsage?: number[];
     wristUsage?: number[];
     armUsage?: number[];
+    leftArmMotion?: number[];
+    rightArmMotion?: number[];
+    leftElbowAngle?: number[];
+    rightElbowAngle?: number[];
+    leftWristAngle?: number[];
+    rightWristAngle?: number[];
     leftWristBreak?: number[];
     rightWristBreak?: number[];
     leftBicep?: number[];

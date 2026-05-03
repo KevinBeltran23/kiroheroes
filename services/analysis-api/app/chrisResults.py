@@ -2,12 +2,7 @@ from __future__ import annotations
 
 
 def shape_result(
-    metrics: dict,
-    *,
-    session_id: str,
-    user_id: str,
-    thumbnail_path: str | None,
-    overlay_video_path: str | None = None,
+    metrics: dict, *, session_id: str, user_id: str, thumbnail_path: str | None
 ) -> dict:
     scores = metrics["scores"]
     arm = metrics.get("arm", {})
@@ -111,7 +106,7 @@ def shape_result(
                 "severity": "warning",
                 "title": "Balance elbow and shoulder contribution",
                 "explanation": "Uneven arm contribution can make stick heights and sound quality drift between hands.",
-                "suggestion": "Use a front-facing video and check that both elbows travel through a similar range.",
+                "suggestion": "Use a mirror or front-facing video and check that both elbows travel through a similar range.",
             }
         )
 
@@ -147,48 +142,11 @@ def shape_result(
             }
         )
 
-    frame_metrics = metrics.get("frameMetrics", {})
-    finger_usage = frame_metrics.get("finger", [])
-    wrist_usage = frame_metrics.get("wrist", [])
-    arm_usage = frame_metrics.get("arm", [])
-    muscle_usage = metrics.get("muscleUsage", {"finger": 0, "wrist": 0, "arm": 0})
-    if finger_usage and wrist_usage and arm_usage:
-        muscle_usage = {
-            "finger": round(sum(finger_usage) / len(finger_usage), 1),
-            "wrist": round(sum(wrist_usage) / len(wrist_usage), 1),
-            "arm": round(sum(arm_usage) / len(arm_usage), 1),
-            "bicep": muscle_usage.get("bicep", 0),
-            "forearm": muscle_usage.get("forearm", 0),
-            "wristBreak": muscle_usage.get("wristBreak", 0),
-        }
-    approach = metrics.get("approach", {})
-
     return {
         "sessionId": session_id,
         "userId": user_id,
         "summaryScores": scores,
         "metrics": [
-            {
-                "id": "bicep_usage",
-                "label": "Bicep",
-                "value": muscle_usage.get("bicep", muscle_usage.get("arm", 0)),
-                "unit": "%",
-                "description": "Estimated upper-arm activation from calibrated shoulder-to-elbow position.",
-            },
-            {
-                "id": "forearm_usage",
-                "label": "Forearm",
-                "value": muscle_usage.get("forearm", muscle_usage.get("arm", 0)),
-                "unit": "%",
-                "description": "Estimated forearm activation from calibrated elbow angle.",
-            },
-            {
-                "id": "wrist_break_usage",
-                "label": "Wrist Break",
-                "value": muscle_usage.get("wristBreak", muscle_usage.get("wrist", 0)),
-                "unit": "%",
-                "description": "Estimated wrist break activation from calibrated wrist angle.",
-            },
             {
                 "id": "timing_variation",
                 "label": "Timing variation",
@@ -250,6 +208,12 @@ def shape_result(
             "rightHandMotion": [
                 round(value * 100, 1) for value in metrics["rightMotion"]
             ],
+            "leftArmMotion": [round(value, 1) for value in metrics["leftArmMotion"]],
+            "rightArmMotion": [round(value, 1) for value in metrics["rightArmMotion"]],
+            "leftElbowAngle": [round(value, 1) for value in metrics["leftElbowAngle"]],
+            "rightElbowAngle": [
+                round(value, 1) for value in metrics["rightElbowAngle"]
+            ],
             "timingDrift": [
                 round(value * 1000, 1) for value in metrics["intervals"][:24]
             ],
@@ -258,29 +222,8 @@ def shape_result(
                 round(scores["timing"], 1),
                 round(scores["symmetry"], 1),
                 round(scores["postureStability"], 1),
-                round(scores.get("armControl", 0), 1),
+                round(scores["armControl"], 1),
             ],
-            "fingerUsage": finger_usage,
-            "wristUsage": wrist_usage,
-            "armUsage": arm_usage,
-            "leftArmMotion": frame_metrics.get("leftArmMotion", []),
-            "rightArmMotion": frame_metrics.get("rightArmMotion", []),
-            "leftElbowAngle": frame_metrics.get("leftElbowAngle", []),
-            "rightElbowAngle": frame_metrics.get("rightElbowAngle", []),
-            "leftWristAngle": frame_metrics.get("leftWristAngle", []),
-            "rightWristAngle": frame_metrics.get("rightWristAngle", []),
-            "leftWristBreak": frame_metrics.get("leftWristBreak", []),
-            "rightWristBreak": frame_metrics.get("rightWristBreak", []),
-            "leftBicep": frame_metrics.get("leftBicep", []),
-            "rightBicep": frame_metrics.get("rightBicep", []),
-            "leftForearm": frame_metrics.get("leftForearm", []),
-            "rightForearm": frame_metrics.get("rightForearm", []),
         },
-        "muscleUsage": muscle_usage,
-        "approach": approach,
-        "angles": metrics.get("angles", {}),
-        "artifactPaths": {
-            "thumbnailPath": thumbnail_path,
-            "overlayVideoPath": overlay_video_path,
-        },
+        "artifactPaths": {"thumbnailPath": thumbnail_path},
     }
