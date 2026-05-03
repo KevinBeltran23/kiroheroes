@@ -7,12 +7,10 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import MediaUploader from '../../components/media/MediaUploader';
 import Button from '../../components/common/Button';
 import { useColors } from '../../hooks/useColors';
@@ -23,7 +21,6 @@ import { getUserFacingMessage } from '../../services/errorHandler';
 
 function NewSessionScreen() {
   const [projectName, setProjectName] = useState('');
-  const [cameraAngle, setCameraAngle] = useState<'front' | 'front_left' | 'front_right' | 'side'>('front');
   const [notes, setNotes] = useState('');
   const [videoUri, setVideoUri] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -48,16 +45,19 @@ function NewSessionScreen() {
       {
         exerciseType: 'single_strokes',
         projectName: projectName.trim(),
-        cameraAngle,
         notes,
         videoUri,
       },
       {
         onSuccess: (result) => {
+          // Reset form so coming back doesn't show stale data
+          setProjectName('');
+          setNotes('');
+          setVideoUri(null);
+          setIsSubmitting(false);
           navigation.navigate('SessionStatus', {
             sessionId: result.sessionId,
           });
-          setIsSubmitting(false);
         },
         onError: (error) => {
           setIsSubmitting(false);
@@ -103,35 +103,6 @@ function NewSessionScreen() {
       fontSize: scaleFont(15),
     },
     notes: { minHeight: scaleHeight(86), textAlignVertical: 'top' },
-    segmentedRow: {
-      flexDirection: 'row',
-      gap: proportionalSize(8),
-      flexWrap: 'wrap',
-    },
-    segment: {
-      flexGrow: 1,
-      minWidth: '47%',
-      backgroundColor: colors.backgroundSecondary,
-      borderColor: colors.borderLight,
-      borderWidth: proportionalSize(1),
-      borderRadius: proportionalSize(8),
-      paddingVertical: scaleHeight(11),
-      paddingHorizontal: proportionalSize(10),
-      alignItems: 'center',
-      flexDirection: 'row',
-      justifyContent: 'center',
-      gap: proportionalSize(6),
-    },
-    segmentActive: {
-      borderColor: colors.primary,
-      backgroundColor: colors.primaryLight,
-    },
-    segmentText: {
-      color: colors.textSecondary,
-      fontSize: scaleFont(13),
-      fontWeight: '700',
-    },
-    segmentTextActive: { color: colors.primary },
     button: { marginTop: scaleHeight(22) },
   });
 
@@ -143,8 +114,8 @@ function NewSessionScreen() {
       <ScrollView contentContainerStyle={s.content}>
         <Text style={s.title}>New project</Text>
         <Text style={s.helper}>
-          Set the drum height and camera angle before recording so MediaPipe can
-          consistently see the shoulders, elbows, wrists, hands, and sticks.
+          Record or upload a short clip with your upper body and pad/snare
+          visible so MediaPipe can track shoulders, elbows, wrists, and hands.
         </Text>
 
         <Text style={s.label}>Project name</Text>
@@ -155,34 +126,6 @@ function NewSessionScreen() {
           placeholderTextColor={colors.textTertiary}
           style={s.input}
         />
-
-        <Text style={s.label}>Camera angle</Text>
-        <View style={s.segmentedRow}>
-          {[
-            ['front', 'Front', 'camera'],
-            ['front_left', 'Front L', 'camera-front-variant'],
-            ['front_right', 'Front R', 'camera-front'],
-            ['side', 'Side', 'camera-switch'],
-          ].map(([value, label, icon]) => {
-            const active = value === cameraAngle;
-            return (
-              <TouchableOpacity
-                key={value}
-                style={[s.segment, active ? s.segmentActive : null]}
-                onPress={() => setCameraAngle(value as typeof cameraAngle)}
-              >
-                <Icon
-                  name={icon as React.ComponentProps<typeof Icon>['name']}
-                  size={proportionalSize(17)}
-                  color={active ? colors.primary : colors.textSecondary}
-                />
-                <Text style={[s.segmentText, active ? s.segmentTextActive : null]}>
-                  {label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
 
         <Text style={s.label}>Practice clip</Text>
         <MediaUploader selectedUri={videoUri} onVideoSelected={setVideoUri} />

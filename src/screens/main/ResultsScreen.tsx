@@ -616,11 +616,7 @@ function ResultsScreen() {
       <Pressable
         style={styles.backButton}
         onPress={() => {
-          if (navigation.canGoBack()) {
-            navigation.goBack();
-          } else {
-            navigation.navigate('Main');
-          }
+          navigation.navigate('Main');
         }}
         accessibilityRole="button"
         accessibilityLabel="Go back"
