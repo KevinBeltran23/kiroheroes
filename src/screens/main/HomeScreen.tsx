@@ -7,7 +7,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { CompositeNavigationProp, useNavigation } from '@react-navigation/native';
+import {
+  CompositeNavigationProp,
+  useNavigation,
+} from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
@@ -53,7 +56,6 @@ function HomeScreen() {
   const navigation = useNavigation<HomeNavigation>();
   const { scaleHeight, proportionalSize, scaleFont } = useResponsiveStyles();
   const { data: sessions = [], isLoading } = useSessionsQuery(user?.uid);
-  const recent = sessions[0];
 
   const s = StyleSheet.create({
     container: {
@@ -80,31 +82,6 @@ function HomeScreen() {
       fontSize: scaleFont(15),
       lineHeight: scaleFont(21),
       marginBottom: scaleHeight(20),
-    },
-    hero: {
-      backgroundColor: ui.panel,
-      borderRadius: proportionalSize(8),
-      borderWidth: 1,
-      borderColor: ui.border,
-      padding: proportionalSize(14),
-      marginBottom: scaleHeight(16),
-    },
-    heroTop: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: scaleHeight(16),
-    },
-    heroTitle: { color: ui.text, fontSize: scaleFont(17), fontWeight: '900', flex: 1 },
-    heroMeta: { color: ui.muted, fontSize: scaleFont(12), marginTop: scaleHeight(4) },
-    playBox: {
-      height: scaleHeight(118),
-      backgroundColor: '#0B1016',
-      borderRadius: proportionalSize(8),
-      borderColor: ui.border,
-      borderWidth: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
     },
     sectionTitle: {
       color: ui.text,
@@ -162,24 +139,10 @@ function HomeScreen() {
         stick-path trends, and hand-specific traditional grip rules.
       </Text>
 
-      <Button label="New Project" onPress={() => navigation.navigate('NewSessionTab')} />
-
-      {recent && (
-        <TouchableOpacity style={s.hero} onPress={() => openSession(recent)}>
-          <View style={s.heroTop}>
-            <View>
-              <Text style={s.heroTitle}>{recent.projectName || exerciseLabels[recent.exerciseType]}</Text>
-              <Text style={s.heroMeta}>
-                {formatCreatedAt(recent.createdAt)} - {formatStatus(recent.status)}
-              </Text>
-            </View>
-            <Icon name="chevron-right" size={proportionalSize(24)} color={ui.muted} />
-          </View>
-          <View style={s.playBox}>
-            <Icon name="play-circle" size={proportionalSize(42)} color={ui.text} />
-          </View>
-        </TouchableOpacity>
-      )}
+      <Button
+        label="New Project"
+        onPress={() => navigation.navigate('NewSessionTab')}
+      />
 
       <Text style={s.sectionTitle}>History</Text>
       {isLoading ? (
@@ -196,15 +159,27 @@ function HomeScreen() {
           }
           renderItem={({ item }) => (
             <TouchableOpacity style={s.card} onPress={() => openSession(item)}>
-              <Icon name="chart-line" size={proportionalSize(21)} color={ui.blue} />
+              <Icon
+                name="chart-line"
+                size={proportionalSize(21)}
+                color={ui.blue}
+              />
               <View style={s.cardText}>
-                <Text style={s.cardTitle}>{item.projectName || exerciseLabels[item.exerciseType]}</Text>
+                <Text style={s.cardTitle}>
+                  {item.projectName || exerciseLabels[item.exerciseType]}
+                </Text>
                 <Text style={s.cardMeta}>
                   {formatStatus(item.status)}
-                  {item.drumHeightInches ? ` - ${item.drumHeightInches}" drum` : ''}
+                  {item.drumHeightInches
+                    ? ` - ${item.drumHeightInches}" drum`
+                    : ''}
                 </Text>
               </View>
-              <Icon name="chevron-right" size={proportionalSize(20)} color={ui.muted} />
+              <Icon
+                name="chevron-right"
+                size={proportionalSize(20)}
+                color={ui.muted}
+              />
             </TouchableOpacity>
           )}
         />

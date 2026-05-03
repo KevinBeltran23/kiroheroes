@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -44,6 +45,42 @@ function metricFromResult(
   fallback: number,
 ) {
   return result.metrics.find(metric => metric.id === id)?.value ?? fallback;
+}
+
+function interpolateTimelineValue(
+  data: MovementTimelinePoint[],
+  time: number,
+  key: 'finger' | 'wrist' | 'arm',
+) {
+  if (!data.length) {
+    return 0;
+  }
+  if (time <= data[0].time) {
+    return data[0][key];
+  }
+
+  for (let index = 1; index < data.length; index += 1) {
+    const previous = data[index - 1];
+    const current = data[index];
+    if (time <= current.time) {
+      const span = Math.max(current.time - previous.time, 0.001);
+      const progress = (time - previous.time) / span;
+      return previous[key] + (current[key] - previous[key]) * progress;
+    }
+  }
+
+  return data[data.length - 1][key];
+}
+
+function averageTimelineValue(
+  data: MovementTimelinePoint[],
+  key: 'finger' | 'wrist' | 'arm',
+  fallback: number,
+) {
+  if (!data.length) {
+    return fallback;
+  }
+  return data.reduce((sum, point) => sum + point[key], 0) / data.length;
 }
 
 function useVideoUrl(path?: string | null) {
@@ -117,6 +154,12 @@ function ResultsContent({
   const [videoDuration, setVideoDuration] = useState(0);
   const [videoPaused, setVideoPaused] = useState(true);
   const [videoFrameRate, setVideoFrameRate] = useState(30);
+  const [showFrameValues, setShowFrameValues] = useState(false);
+  const [selectedUsage, setSelectedUsage] = useState<{
+    finger: number;
+    wrist: number;
+    arm: number;
+  } | null>(null);
   const isGraphDraggingRef = useRef(false);
   const isVideoPlayingRef = useRef(false);
   const wasPlayingBeforeGraphDragRef = useRef(false);
@@ -174,6 +217,13 @@ function ResultsContent({
     result.chartSeries.wristUsage,
     videoDuration,
   ]);
+  const derivedAverageUsage = {
+    finger: averageTimelineValue(chartData, 'finger', muscleUsage.finger),
+    wrist: averageTimelineValue(chartData, 'wrist', muscleUsage.wrist),
+    arm: averageTimelineValue(chartData, 'arm', muscleUsage.arm),
+  };
+  const displayedUsage =
+    showFrameValues && selectedUsage ? selectedUsage : derivedAverageUsage;
 
   const handleGraphScrub = (progress: number) => {
     const frameIndex = Math.round(
@@ -187,6 +237,12 @@ function ResultsContent({
       ? frameAccurateTime / videoDuration
       : frameAccurateTime /
         Math.max(chartData[chartData.length - 1]?.time ?? 1, 1);
+    setSelectedUsage({
+      finger: interpolateTimelineValue(chartData, frameAccurateTime, 'finger'),
+      wrist: interpolateTimelineValue(chartData, frameAccurateTime, 'wrist'),
+      arm: interpolateTimelineValue(chartData, frameAccurateTime, 'arm'),
+    });
+    setShowFrameValues(true);
     setScrubProgress(Math.min(1, Math.max(0, normalizedProgress)));
     if (videoDuration && videoRef.current) {
       videoRef.current.seek(frameAccurateTime);
@@ -200,7 +256,13 @@ function ResultsContent({
     setScrubProgress(Math.min(1, Math.max(0, currentTime / videoDuration)));
   };
 
+  const showAverageValues = () => {
+    setShowFrameValues(false);
+    setSelectedUsage(null);
+  };
+
   const startGraphScrub = () => {
+    setShowFrameValues(true);
     wasPlayingBeforeGraphDragRef.current = isVideoPlayingRef.current;
     isGraphDraggingRef.current = true;
     if (isVideoPlayingRef.current) {
@@ -236,6 +298,12 @@ function ResultsContent({
       borderWidth: 1,
       justifyContent: 'center',
       alignItems: 'center',
+    },
+    chartMode: {
+      color: showFrameValues ? dashboard.text : dashboard.muted,
+      fontSize: scaleFont(11),
+      fontWeight: '700',
+      marginTop: scaleHeight(7),
     },
     video: { width: '100%', height: '100%' },
     videoFallback: {
@@ -330,7 +398,7 @@ function ResultsContent({
         / {totalVideoFrames} - sample {Math.max(1, selectedIndex + 1)}
       </Text>
 
-      <View style={s.videoShell}>
+      <Pressable style={s.videoShell} onPress={showAverageValues}>
         {videoUrl ? (
           <Video
             ref={videoRef}
@@ -367,7 +435,7 @@ function ResultsContent({
             </Text>
           </>
         )}
-      </View>
+      </Pressable>
 
       <MovementTimelineChart
         data={chartData}
@@ -377,26 +445,31 @@ function ResultsContent({
         onScrubStart={startGraphScrub}
         onScrubEnd={endGraphScrub}
       />
+      <Text style={s.chartMode}>
+        {showFrameValues
+          ? 'Showing selected-frame contribution'
+          : 'Showing average contribution'}
+      </Text>
 
-      <View style={s.row}>
+      <Pressable style={s.row} onPress={showAverageValues}>
         <MuscleTile
           label="Finger"
-          value={muscleUsage.finger}
+          value={displayedUsage.finger}
           color={dashboard.blue}
         />
         <MuscleTile
           label="Wrist"
-          value={muscleUsage.wrist}
+          value={displayedUsage.wrist}
           color={dashboard.green}
         />
         <MuscleTile
           label="Arm"
-          value={muscleUsage.arm}
+          value={displayedUsage.arm}
           color={dashboard.gold}
         />
-      </View>
+      </Pressable>
 
-      <View style={s.approachPanel}>
+      <Pressable style={s.approachPanel} onPress={showAverageValues}>
         <View style={s.approachMain}>
           <Text style={s.eyebrow}>APPROACH</Text>
           <Text style={s.approachTitle}>{approach.category}</Text>
@@ -407,14 +480,14 @@ function ResultsContent({
             {confidenceLevel} {Math.round(approach.confidence)}%
           </Text>
         </View>
-      </View>
+      </Pressable>
 
-      <View style={s.summaryPanel}>
+      <Pressable style={s.summaryPanel} onPress={showAverageValues}>
         <Text style={s.eyebrow}>COACHING SUMMARY</Text>
         <Text style={s.body}>{approach.summary}</Text>
-      </View>
+      </Pressable>
 
-      <View style={s.angleRow}>
+      <Pressable style={s.angleRow} onPress={showAverageValues}>
         {[
           ['Left', result.angles?.left],
           ['Right', result.angles?.right],
@@ -432,7 +505,7 @@ function ResultsContent({
             </Text>
           </View>
         ))}
-      </View>
+      </Pressable>
     </>
   );
 }

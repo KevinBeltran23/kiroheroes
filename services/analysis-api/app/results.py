@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 
-def shape_result(metrics: dict, *, session_id: str, user_id: str, thumbnail_path: str | None) -> dict:
+def shape_result(
+    metrics: dict, *, session_id: str, user_id: str, thumbnail_path: str | None
+) -> dict:
     scores = metrics["scores"]
     height_delta = metrics["heightDelta"]
     timing_variation = 0.0
@@ -65,8 +67,18 @@ def shape_result(metrics: dict, *, session_id: str, user_id: str, thumbnail_path
             }
         )
 
-    approach = metrics.get("approach", {})
+    frame_metrics = metrics.get("frameMetrics", {})
+    finger_usage = frame_metrics.get("finger", [])
+    wrist_usage = frame_metrics.get("wrist", [])
+    arm_usage = frame_metrics.get("arm", [])
     muscle_usage = metrics.get("muscleUsage", {"finger": 0, "wrist": 0, "arm": 0})
+    if finger_usage and wrist_usage and arm_usage:
+        muscle_usage = {
+            "finger": round(sum(finger_usage) / len(finger_usage), 1),
+            "wrist": round(sum(wrist_usage) / len(wrist_usage), 1),
+            "arm": round(sum(arm_usage) / len(arm_usage), 1),
+        }
+    approach = metrics.get("approach", {})
 
     return {
         "sessionId": session_id,
@@ -121,20 +133,26 @@ def shape_result(metrics: dict, *, session_id: str, user_id: str, thumbnail_path
         ],
         "feedbackItems": feedback,
         "chartSeries": {
-            "leftHandMotion": [round(value * 100, 1) for value in metrics["leftMotion"]],
-            "rightHandMotion": [round(value * 100, 1) for value in metrics["rightMotion"]],
-            "timingDrift": [round(value * 1000, 1) for value in metrics["intervals"][:24]],
+            "leftHandMotion": [
+                round(value * 100, 1) for value in metrics["leftMotion"]
+            ],
+            "rightHandMotion": [
+                round(value * 100, 1) for value in metrics["rightMotion"]
+            ],
+            "timingDrift": [
+                round(value * 1000, 1) for value in metrics["intervals"][:24]
+            ],
             "consistency": [
                 round(scores["strokeConsistency"], 1),
                 round(scores["timing"], 1),
                 round(scores["symmetry"], 1),
                 round(scores["postureStability"], 1),
             ],
-            "fingerUsage": metrics.get("frameMetrics", {}).get("finger", []),
-            "wristUsage": metrics.get("frameMetrics", {}).get("wrist", []),
-            "armUsage": metrics.get("frameMetrics", {}).get("arm", []),
-            "leftWristBreak": metrics.get("frameMetrics", {}).get("leftWristBreak", []),
-            "rightWristBreak": metrics.get("frameMetrics", {}).get("rightWristBreak", []),
+            "fingerUsage": finger_usage,
+            "wristUsage": wrist_usage,
+            "armUsage": arm_usage,
+            "leftWristBreak": frame_metrics.get("leftWristBreak", []),
+            "rightWristBreak": frame_metrics.get("rightWristBreak", []),
         },
         "muscleUsage": muscle_usage,
         "approach": approach,

@@ -6,7 +6,9 @@ import cv2
 import numpy as np
 
 
-def sample_frames(video_path: Path, max_frames: int = 180) -> tuple[list[np.ndarray], float]:
+def sample_frames(
+    video_path: Path, max_frames: int = 180
+) -> tuple[list[np.ndarray], float]:
     capture = cv2.VideoCapture(str(video_path))
     if not capture.isOpened():
         raise ValueError("Unable to open uploaded video.")

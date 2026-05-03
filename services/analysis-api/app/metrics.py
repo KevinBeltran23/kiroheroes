@@ -56,7 +56,22 @@ def _normalize(values: list[float], multiplier: float = 1.0) -> list[float]:
     max_value = max(clean) if clean else 0.0
     if max_value <= 0:
         return [0.0 for _ in values]
-    return [round(max(0.0, min(100.0, (0.0 if math.isnan(value) else value) / max_value * 100 * multiplier)), 1) for value in values]
+    return [
+        round(
+            max(
+                0.0,
+                min(
+                    100.0,
+                    (0.0 if math.isnan(value) else value)
+                    / max_value
+                    * 100
+                    * multiplier,
+                ),
+            ),
+            1,
+        )
+        for value in values
+    ]
 
 
 def _range(values: list[float]) -> float:
@@ -81,14 +96,64 @@ def _resample(values: list[float], target_count: int = 48) -> list[float]:
     return output
 
 
-def _hand_angles(trajectories: dict[str, list[Point]], side: str) -> dict[str, list[float]]:
+def _normalized_contribution_series(
+    finger: list[float], wrist: list[float], arm: list[float], target_count: int = 48
+) -> dict[str, list[float]]:
+    count = max(len(finger), len(wrist), len(arm), 1)
+    normalized = {"finger": [], "wrist": [], "arm": []}
+    last_split = {"finger": 33.3, "wrist": 33.3, "arm": 33.4}
+
+    for index in range(count):
+        finger_value = (
+            finger[index]
+            if index < len(finger) and not math.isnan(finger[index])
+            else 0.0
+        )
+        wrist_value = (
+            wrist[index] if index < len(wrist) and not math.isnan(wrist[index]) else 0.0
+        )
+        arm_value = (
+            arm[index] if index < len(arm) and not math.isnan(arm[index]) else 0.0
+        )
+        total = finger_value + wrist_value + arm_value
+
+        if total <= 0:
+            normalized["finger"].append(last_split["finger"])
+            normalized["wrist"].append(last_split["wrist"])
+            normalized["arm"].append(last_split["arm"])
+            continue
+
+        finger_percent = round(finger_value / total * 100.0, 1)
+        wrist_percent = round(wrist_value / total * 100.0, 1)
+        arm_percent = round(100.0 - finger_percent - wrist_percent, 1)
+        last_split = {
+            "finger": finger_percent,
+            "wrist": wrist_percent,
+            "arm": arm_percent,
+        }
+        normalized["finger"].append(last_split["finger"])
+        normalized["wrist"].append(last_split["wrist"])
+        normalized["arm"].append(last_split["arm"])
+
+    return {
+        "finger": _resample(normalized["finger"], target_count),
+        "wrist": _resample(normalized["wrist"], target_count),
+        "arm": _resample(normalized["arm"], target_count),
+    }
+
+
+def _hand_angles(
+    trajectories: dict[str, list[Point]], side: str
+) -> dict[str, list[float]]:
     shoulder = trajectories.get(f"{side}_shoulder", [])
     elbow = trajectories.get(f"{side}_elbow", [])
     wrist = trajectories.get(f"{side}_wrist", [])
     index_tip = trajectories.get(f"{side}_index", [])
     pinky = trajectories.get(f"{side}_pinky", [])
     thumb = trajectories.get(f"{side}_thumb", [])
-    frame_count = max(len(shoulder), len(elbow), len(wrist), len(index_tip), len(pinky), len(thumb))
+    frame_count = max(
+        len(shoulder), len(elbow), len(wrist), len(index_tip), len(pinky), len(thumb)
+    )
 
     elbow_angles: list[float] = []
     shoulder_angles: list[float] = []
@@ -104,12 +169,25 @@ def _hand_angles(trajectories: dict[str, list[Point]], side: str) -> dict[str, l
         thumb_point = thumb[index] if index < len(thumb) else None
 
         elbow_angles.append(_angle(shoulder_point, elbow_point, wrist_point))
-        shoulder_angles.append(_angle(elbow_point, shoulder_point, (shoulder_point[0], shoulder_point[1] - 0.2) if _is_valid(shoulder_point) else None))
-        wrist_break_angles.append(abs(180.0 - _angle(elbow_point, wrist_point, index_point)))
+        shoulder_angles.append(
+            _angle(
+                elbow_point,
+                shoulder_point,
+                (
+                    (shoulder_point[0], shoulder_point[1] - 0.2)
+                    if _is_valid(shoulder_point)
+                    else None
+                ),
+            )
+        )
+        wrist_break_angles.append(
+            abs(180.0 - _angle(elbow_point, wrist_point, index_point))
+        )
 
         if _is_valid(index_point) and _is_valid(pinky_point) and _is_valid(thumb_point):
             hand_spread.append(
-                math.dist(index_point, thumb_point) + math.dist(pinky_point, thumb_point)
+                math.dist(index_point, thumb_point)
+                + math.dist(pinky_point, thumb_point)
             )
         else:
             hand_spread.append(float("nan"))
@@ -122,7 +200,9 @@ def _hand_angles(trajectories: dict[str, list[Point]], side: str) -> dict[str, l
     }
 
 
-def _approach_category(arm: float, wrist: float, finger: float, wrist_break: float) -> dict[str, object]:
+def _approach_category(
+    arm: float, wrist: float, finger: float, wrist_break: float
+) -> dict[str, object]:
     scores = {
         "Arm-Heavy": arm * 1.1,
         "Fulcrum Lift": max(finger, 100.0 - wrist) * 0.9,
@@ -150,7 +230,11 @@ def detect_stroke_peaks(y_values: list[float]) -> list[int]:
     if len(y_values) < 3:
         return peaks
     for index in range(1, len(y_values) - 1):
-        prev_y, current_y, next_y = y_values[index - 1], y_values[index], y_values[index + 1]
+        prev_y, current_y, next_y = (
+            y_values[index - 1],
+            y_values[index],
+            y_values[index + 1],
+        )
         if any(math.isnan(value) for value in (prev_y, current_y, next_y)):
             continue
         if current_y > prev_y and current_y > next_y:
@@ -184,25 +268,38 @@ def compute_metrics(trajectories: dict[str, list[Point]], sample_fps: float) -> 
         trajectories.get("right_shoulder", [])
     )
     posture_stability = _score_from_variation(shoulder_y, scale=2.0)
-    overall = mean([timing_score, symmetry_score, stroke_consistency, posture_stability])
+    overall = mean(
+        [timing_score, symmetry_score, stroke_consistency, posture_stability]
+    )
 
     left_angles = _hand_angles(trajectories, "left")
     right_angles = _hand_angles(trajectories, "right")
-    elbow_motion = _series_delta(left_angles["elbow"]) + _series_delta(right_angles["elbow"])
-    shoulder_motion = _series_delta(left_angles["shoulder"]) + _series_delta(right_angles["shoulder"])
-    wrist_motion = _series_delta(left_angles["wristBreak"]) + _series_delta(right_angles["wristBreak"])
-    finger_motion = _series_delta(left_angles["handSpread"]) + _series_delta(right_angles["handSpread"])
+    elbow_motion = _series_delta(left_angles["elbow"]) + _series_delta(
+        right_angles["elbow"]
+    )
+    shoulder_motion = _series_delta(left_angles["shoulder"]) + _series_delta(
+        right_angles["shoulder"]
+    )
+    wrist_motion = _series_delta(left_angles["wristBreak"]) + _series_delta(
+        right_angles["wristBreak"]
+    )
+    finger_motion = _series_delta(left_angles["handSpread"]) + _series_delta(
+        right_angles["handSpread"]
+    )
 
-    arm_activity = _average(_normalize(elbow_motion + shoulder_motion))
-    wrist_activity = _average(_normalize(wrist_motion, multiplier=1.15))
-    finger_activity = _average(_normalize(finger_motion, multiplier=0.9))
-    total_activity = arm_activity + wrist_activity + finger_activity or 1.0
+    contribution_series = _normalized_contribution_series(
+        finger_motion,
+        [value * 1.15 for value in wrist_motion],
+        elbow_motion + shoulder_motion,
+    )
     muscle_usage = {
-        "finger": round(finger_activity / total_activity * 100.0, 1),
-        "wrist": round(wrist_activity / total_activity * 100.0, 1),
-        "arm": round(arm_activity / total_activity * 100.0, 1),
+        "finger": round(_average(contribution_series["finger"]), 1),
+        "wrist": round(_average(contribution_series["wrist"]), 1),
+        "arm": round(_average(contribution_series["arm"]), 1),
     }
-    wrist_break_mean = (_average(left_angles["wristBreak"]) + _average(right_angles["wristBreak"])) / 2.0
+    wrist_break_mean = (
+        _average(left_angles["wristBreak"]) + _average(right_angles["wristBreak"])
+    ) / 2.0
     approach = _approach_category(
         muscle_usage["arm"],
         muscle_usage["wrist"],
@@ -239,9 +336,9 @@ def compute_metrics(trajectories: dict[str, list[Point]], sample_fps: float) -> 
             },
         },
         "frameMetrics": {
-            "finger": _resample(_normalize(finger_motion, multiplier=0.9)),
-            "wrist": _resample(_normalize(wrist_motion, multiplier=1.15)),
-            "arm": _resample(_normalize(elbow_motion + shoulder_motion)),
+            "finger": contribution_series["finger"],
+            "wrist": contribution_series["wrist"],
+            "arm": contribution_series["arm"],
             "leftWristBreak": _resample(left_angles["wristBreak"]),
             "rightWristBreak": _resample(right_angles["wristBreak"]),
         },

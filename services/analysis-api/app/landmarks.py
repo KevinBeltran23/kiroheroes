@@ -5,7 +5,9 @@ import mediapipe as mp
 import numpy as np
 
 
-def extract_pose_trajectories(frames: list[np.ndarray]) -> dict[str, list[tuple[float, float]]]:
+def extract_pose_trajectories(
+    frames: list[np.ndarray],
+) -> dict[str, list[tuple[float, float]]]:
     pose = mp.solutions.pose.Pose(static_image_mode=False, model_complexity=1)
     keys = {
         "left_wrist": mp.solutions.pose.PoseLandmark.LEFT_WRIST,
