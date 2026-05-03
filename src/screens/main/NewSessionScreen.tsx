@@ -48,6 +48,7 @@ function NewSessionScreen() {
   const [cameraAngle, setCameraAngle] = useState<'front' | 'front_left' | 'front_right' | 'side'>('front');
   const [notes, setNotes] = useState('');
   const [videoUri, setVideoUri] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const colors = useColors();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -71,8 +72,13 @@ function NewSessionScreen() {
       return;
     }
 
-    try {
-      const result = await createSession.mutateAsync({
+    setIsSubmitting(true);
+
+    // The mutation creates the session doc instantly and kicks off
+    // upload + analysis in the background.  We navigate to the status
+    // screen as soon as we have a sessionId.
+    createSession.mutate(
+      {
         exerciseType,
         tempoTarget: parsedTempo,
         projectName: projectName.trim(),
@@ -80,11 +86,20 @@ function NewSessionScreen() {
         cameraAngle,
         notes,
         videoUri,
-      });
-      navigation.navigate('SessionStatus', result);
-    } catch (error) {
-      Alert.alert('Upload failed', getUserFacingMessage(error));
-    }
+      },
+      {
+        onSuccess: (result) => {
+          navigation.navigate('SessionStatus', {
+            sessionId: result.sessionId,
+          });
+          setIsSubmitting(false);
+        },
+        onError: (error) => {
+          setIsSubmitting(false);
+          Alert.alert('Upload failed', getUserFacingMessage(error));
+        },
+      },
+    );
   };
 
   const s = StyleSheet.create({
@@ -276,9 +291,9 @@ function NewSessionScreen() {
         />
 
         <Button
-          label={createSession.isPending ? 'Processing Setup...' : 'Save Rep and Analyze'}
+          label={isSubmitting ? 'Uploading…' : 'Save Rep and Analyze'}
           onPress={submit}
-          disabled={createSession.isPending}
+          disabled={isSubmitting}
           style={s.button}
         />
       </ScrollView>

@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Button from '../../components/common/Button';
 import { useAuth } from '../../contexts/AuthContext';
+import { clearAllCaches } from '../../utils/clearCache';
 import { useColors } from '../../hooks/useColors';
 import { useResponsiveStyles } from '../../hooks/useResponsiveStyles';
 import { RootStackParamList } from '../../navigation/types';
@@ -259,6 +260,18 @@ function SettingsScreen() {
           </View>
         </>
       )}
+      <Button
+        label="Clear Cache"
+        variant="secondary"
+        onPress={() => {
+          clearAllCaches();
+          Alert.alert(
+            'Cache cleared',
+            'All local data has been cleared. The app will fetch fresh data from the server.',
+          );
+        }}
+        style={s.signOut}
+      />
       <Button
         label="Sign Out"
         variant="danger"

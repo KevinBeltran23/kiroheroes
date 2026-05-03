@@ -16,6 +16,7 @@ import {
   updateUser as updateUserFirestore,
 } from '../services/firebase/users';
 import { getUserFacingMessage } from '../services/errorHandler';
+import { clearAllCaches } from '../utils/clearCache';
 import { User } from '../types/user';
 import { createMMKV } from 'react-native-mmkv';
 
@@ -177,6 +178,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signOut = async () => {
     try {
+      clearAllCaches();
       await GoogleAuth.signOut();
     } catch (error) {
       console.error('Sign out error:', error);

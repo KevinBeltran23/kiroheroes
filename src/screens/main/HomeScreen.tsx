@@ -15,10 +15,11 @@ import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../../contexts/AuthContext';
+import { useColors } from '../../hooks/useColors';
 import { useResponsiveStyles } from '../../hooks/useResponsiveStyles';
 import { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { useSessionsQuery } from '../../services/store/analysisQueries';
-import { AnalysisSession } from '../../types/analysis';
+import { AnalysisSession, SessionStatus } from '../../types/analysis';
 import Button from '../../components/common/Button';
 
 type HomeNavigation = CompositeNavigationProp<
@@ -26,94 +27,147 @@ type HomeNavigation = CompositeNavigationProp<
   NativeStackNavigationProp<RootStackParamList>
 >;
 
-const ui = {
-  bg: '#060A10',
-  panel: '#0D1219',
-  border: '#1A2233',
-  text: '#F0F2F5',
-  muted: '#7B8BA3',
-  blue: '#3B7BF6',
-  accent: '#3B7BF6',
-};
-
 const exerciseLabels: Record<AnalysisSession['exerciseType'], string> = {
   single_strokes: 'Single strokes',
   double_strokes: 'Double strokes',
   paradiddles: 'Paradiddles',
 };
 
-function formatStatus(status: AnalysisSession['status']) {
+function formatStatus(status: SessionStatus) {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
-function formatCreatedAt(value: any) {
-  const date = value?.toDate?.() ?? value;
-  return date instanceof Date ? date.toLocaleDateString() : 'Recent';
+function isActiveJob(status: SessionStatus) {
+  return (
+    status === 'uploading' ||
+    status === 'queued' ||
+    status === 'processing'
+  );
+}
+
+function statusIcon(status: SessionStatus): {
+  name: string;
+  color: string;
+} {
+  switch (status) {
+    case 'completed':
+      return { name: 'check-circle-outline', color: '#38C55D' };
+    case 'failed':
+      return { name: 'alert-circle-outline', color: '#FC6262' };
+    case 'uploading':
+    case 'queued':
+    case 'processing':
+      return { name: 'progress-clock', color: '#3B7BF6' };
+    default:
+      return { name: 'file-outline', color: '#7B8BA3' };
+  }
 }
 
 function HomeScreen() {
   const { user } = useAuth();
+  const colors = useColors();
   const navigation = useNavigation<HomeNavigation>();
   const { scaleHeight, proportionalSize, scaleFont } = useResponsiveStyles();
   const { data: sessions = [], isLoading } = useSessionsQuery(user?.uid);
 
+  // Split sessions into active (in-progress) and recent (completed/failed/draft)
+  const activeSessions = sessions.filter(s => isActiveJob(s.status));
+  const recentSessions = sessions
+    .filter(s => !isActiveJob(s.status))
+    .slice(0, 5);
+
   const s = StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: ui.bg,
+      backgroundColor: colors.background,
       padding: proportionalSize(20),
       paddingTop: scaleHeight(58),
     },
     eyebrow: {
-      color: ui.accent,
+      color: colors.primary,
       fontSize: scaleFont(12),
       fontWeight: '900',
       marginBottom: scaleHeight(7),
       letterSpacing: 0,
     },
     title: {
-      color: ui.text,
+      color: colors.textPrimary,
       fontSize: scaleFont(30),
       fontWeight: '900',
       marginBottom: scaleHeight(8),
     },
     subtitle: {
-      color: ui.muted,
+      color: colors.textSecondary,
       fontSize: scaleFont(15),
       lineHeight: scaleFont(21),
       marginBottom: scaleHeight(20),
     },
     sectionTitle: {
-      color: ui.text,
+      color: colors.textPrimary,
       fontSize: scaleFont(16),
       fontWeight: '900',
       marginTop: scaleHeight(12),
       marginBottom: scaleHeight(10),
     },
+
+    /* active job card — highlighted */
+    activeCard: {
+      backgroundColor: colors.primaryLight,
+      borderRadius: proportionalSize(10),
+      padding: proportionalSize(14),
+      marginBottom: scaleHeight(10),
+      borderWidth: 1,
+      borderColor: colors.primary,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: proportionalSize(12),
+    },
+    activeIndicator: {
+      width: proportionalSize(40),
+      height: proportionalSize(40),
+      borderRadius: proportionalSize(20),
+      backgroundColor: 'rgba(59,123,246,0.12)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    activeTextWrap: { flex: 1 },
+    activeTitle: {
+      color: colors.textPrimary,
+      fontSize: scaleFont(15),
+      fontWeight: '800',
+      marginBottom: scaleHeight(3),
+    },
+    activeStatus: {
+      color: colors.primary,
+      fontSize: scaleFont(12),
+      fontWeight: '700',
+    },
+
+    /* regular card */
     card: {
-      backgroundColor: ui.panel,
+      backgroundColor: colors.backgroundSecondary,
       borderRadius: proportionalSize(8),
       padding: proportionalSize(13),
       marginBottom: scaleHeight(9),
       borderWidth: 1,
-      borderColor: ui.border,
+      borderColor: colors.border,
       flexDirection: 'row',
       alignItems: 'center',
       gap: proportionalSize(10),
     },
     cardText: { flex: 1 },
     cardTitle: {
-      color: ui.text,
+      color: colors.textPrimary,
       fontSize: scaleFont(15),
       fontWeight: '800',
       marginBottom: scaleHeight(4),
     },
     cardMeta: {
-      color: ui.muted,
+      color: colors.textSecondary,
       fontSize: scaleFont(12),
     },
     empty: {
-      color: ui.muted,
+      color: colors.textSecondary,
       fontSize: scaleFont(14),
       lineHeight: scaleFont(20),
     },
@@ -144,12 +198,53 @@ function HomeScreen() {
         onPress={() => navigation.navigate('NewSessionTab')}
       />
 
+      {/* Active jobs section */}
+      {activeSessions.length > 0 && (
+        <>
+          <Text style={s.sectionTitle}>In progress</Text>
+          {activeSessions.map(session => {
+            const si = statusIcon(session.status);
+            return (
+              <TouchableOpacity
+                key={session.id}
+                style={s.activeCard}
+                onPress={() => openSession(session)}
+              >
+                <View style={s.activeIndicator}>
+                  <ActivityIndicator color={colors.primary} size="small" />
+                </View>
+                <View style={s.activeTextWrap}>
+                  <Text style={s.activeTitle}>
+                    {session.projectName ||
+                      exerciseLabels[session.exerciseType]}
+                  </Text>
+                  <Text style={s.activeStatus}>
+                    {formatStatus(session.status)}
+                    {session.status === 'processing'
+                      ? ' — analyzing motion'
+                      : session.status === 'uploading'
+                        ? ' — sending video'
+                        : ' — waiting in queue'}
+                  </Text>
+                </View>
+                <Icon
+                  name="chevron-right"
+                  size={proportionalSize(20)}
+                  color={colors.primary}
+                />
+              </TouchableOpacity>
+            );
+          })}
+        </>
+      )}
+
+      {/* History section */}
       <Text style={s.sectionTitle}>History</Text>
       {isLoading ? (
-        <ActivityIndicator color={ui.accent} />
+        <ActivityIndicator color={colors.primary} />
       ) : (
         <FlatList
-          data={sessions.slice(0, 5)}
+          data={recentSessions}
           keyExtractor={item => item.id}
           ListEmptyComponent={
             <Text style={s.empty}>
@@ -157,31 +252,37 @@ function HomeScreen() {
               rep, and process the clip.
             </Text>
           }
-          renderItem={({ item }) => (
-            <TouchableOpacity style={s.card} onPress={() => openSession(item)}>
-              <Icon
-                name="chart-line"
-                size={proportionalSize(21)}
-                color={ui.blue}
-              />
-              <View style={s.cardText}>
-                <Text style={s.cardTitle}>
-                  {item.projectName || exerciseLabels[item.exerciseType]}
-                </Text>
-                <Text style={s.cardMeta}>
-                  {formatStatus(item.status)}
-                  {item.drumHeightInches
-                    ? ` - ${item.drumHeightInches}" drum`
-                    : ''}
-                </Text>
-              </View>
-              <Icon
-                name="chevron-right"
-                size={proportionalSize(20)}
-                color={ui.muted}
-              />
-            </TouchableOpacity>
-          )}
+          renderItem={({ item }) => {
+            const si = statusIcon(item.status);
+            return (
+              <TouchableOpacity
+                style={s.card}
+                onPress={() => openSession(item)}
+              >
+                <Icon
+                  name={si.name as React.ComponentProps<typeof Icon>['name']}
+                  size={proportionalSize(21)}
+                  color={si.color}
+                />
+                <View style={s.cardText}>
+                  <Text style={s.cardTitle}>
+                    {item.projectName || exerciseLabels[item.exerciseType]}
+                  </Text>
+                  <Text style={s.cardMeta}>
+                    {formatStatus(item.status)}
+                    {item.drumHeightInches
+                      ? ` — ${item.drumHeightInches}" drum`
+                      : ''}
+                  </Text>
+                </View>
+                <Icon
+                  name="chevron-right"
+                  size={proportionalSize(20)}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+            );
+          }}
         />
       )}
     </View>
