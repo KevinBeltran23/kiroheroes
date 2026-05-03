@@ -8,7 +8,8 @@ import {
   View,
 } from 'react-native';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
-import { RouteProp, useRoute } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Video from 'react-native-video';
 import { useResponsiveStyles } from '../../hooks/useResponsiveStyles';
 import { RootStackParamList } from '../../navigation/types';
@@ -24,13 +25,13 @@ import MovementTimelineChart, {
 } from '../../components/charts/MovementTimelineChart';
 
 const dashboard = {
-  bg: '#070A0E',
-  panel: '#10151B',
-  panel2: '#151B22',
-  border: '#27313B',
-  text: '#F4F7FA',
-  muted: '#9AA5B1',
-  blue: '#2E8BFF',
+  bg: '#060A10',
+  panel: '#0D1219',
+  panel2: '#111820',
+  border: '#1A2233',
+  text: '#F0F2F5',
+  muted: '#7B8BA3',
+  blue: '#3B7BF6',
   green: '#38C55D',
   gold: '#F2B705',
 };
@@ -563,6 +564,8 @@ function ResultsContent({
 
 function ResultsScreen() {
   const route = useRoute<RouteProp<RootStackParamList, 'Results'>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { scaleHeight, proportionalSize, scaleFont } = useResponsiveStyles();
   const live = useLiveAnalysisResult(route.params.sessionId);
   const query = useAnalysisResultQuery(route.params.sessionId);
@@ -581,6 +584,24 @@ function ResultsScreen() {
           paddingTop: scaleHeight(54),
           paddingBottom: scaleHeight(90),
         },
+        backRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginBottom: scaleHeight(14),
+        },
+        backButton: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingVertical: scaleHeight(6),
+          paddingRight: proportionalSize(14),
+          paddingLeft: proportionalSize(2),
+        },
+        backLabel: {
+          color: dashboard.blue,
+          fontSize: scaleFont(16),
+          fontWeight: '700',
+          marginLeft: proportionalSize(4),
+        },
         empty: {
           color: dashboard.muted,
           fontSize: scaleFont(15),
@@ -592,8 +613,24 @@ function ResultsScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <Pressable
+        style={styles.backButton}
+        onPress={() => {
+          navigation.navigate('Main');
+        }}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+      >
+        <Icon
+          name="chevron-left"
+          size={proportionalSize(26)}
+          color={dashboard.blue}
+        />
+        <Text style={styles.backLabel}>Back</Text>
+      </Pressable>
+
       {!result && query.isLoading ? (
-        <ActivityIndicator color={dashboard.gold} />
+        <ActivityIndicator color={dashboard.blue} />
       ) : result ? (
         <ResultsContent
           result={result}

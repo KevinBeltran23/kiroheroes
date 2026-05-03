@@ -7,6 +7,7 @@ import {
   getDocs,
   getFirestore,
   limit,
+  onSnapshot,
   query,
   serverTimestamp,
   updateDoc,
@@ -96,4 +97,17 @@ export async function updateSession(
   data: Partial<AnalysisSession> & { status?: SessionStatus },
 ): Promise<void> {
   await updateDoc(doc(db, SESSIONS_COLLECTION, sessionId), data);
+}
+
+export function subscribeToSession(
+  sessionId: string,
+  onNext: (session: AnalysisSession | null) => void,
+  onError?: (error: Error) => void,
+) {
+  return onSnapshot(
+    doc(db, SESSIONS_COLLECTION, sessionId),
+    snapshot =>
+      onNext(snapshot.exists() ? mapSessionDoc(snapshot) : null),
+    error => onError?.(error),
+  );
 }

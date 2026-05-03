@@ -6,8 +6,9 @@ import {
   getSession,
   subscribeToAnalysisJob,
   subscribeToAnalysisResult,
+  subscribeToSession,
 } from '../firebase';
-import { AnalysisJob, AnalysisResult } from '../../types/analysis';
+import { AnalysisJob, AnalysisResult, AnalysisSession } from '../../types/analysis';
 
 export const sessionsQueryKey = (userId: string) => ['sessions', userId];
 export const sessionQueryKey = (sessionId: string) => ['session', sessionId];
@@ -54,6 +55,21 @@ export function useLiveAnalysisJob(jobId?: string | null) {
   }, [jobId]);
 
   return { job, error };
+}
+
+export function useLiveSession(sessionId?: string | null) {
+  const [session, setSession] = useState<AnalysisSession | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    if (!sessionId) {
+      setSession(null);
+      return undefined;
+    }
+    return subscribeToSession(sessionId, setSession, setError);
+  }, [sessionId]);
+
+  return { session, error };
 }
 
 export function useLiveAnalysisResult(sessionId?: string | null) {

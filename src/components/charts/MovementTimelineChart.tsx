@@ -33,12 +33,12 @@ interface MovementTimelineChartProps {
 }
 
 const colors = {
-  background: '#070A0E',
-  border: '#27313B',
-  grid: '#1A222B',
-  text: '#9AA5B1',
-  primaryText: '#F4F7FA',
-  bicep: '#2E8BFF',
+  background: '#060A10',
+  border: '#1A2233',
+  grid: '#121A24',
+  text: '#7B8BA3',
+  primaryText: '#F0F2F5',
+  bicep: '#3B7BF6',
   forearm: '#38C55D',
   wristBreak: '#F2B705',
   playhead: '#FFFFFF',
