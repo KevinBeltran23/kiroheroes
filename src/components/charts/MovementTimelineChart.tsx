@@ -18,9 +18,9 @@ import {
 
 export interface MovementTimelinePoint {
   time: number;
-  finger: number;
-  wrist: number;
-  arm: number;
+  bicep: number;
+  forearm: number;
+  wristBreak: number;
 }
 
 interface MovementTimelineChartProps {
@@ -38,9 +38,9 @@ const colors = {
   grid: '#1A222B',
   text: '#9AA5B1',
   primaryText: '#F4F7FA',
-  finger: '#2E8BFF',
-  wrist: '#38C55D',
-  arm: '#F2B705',
+  bicep: '#2E8BFF',
+  forearm: '#38C55D',
+  wristBreak: '#F2B705',
   playhead: '#FFFFFF',
 };
 
@@ -72,7 +72,7 @@ function timeToX(time: number, width: number, duration: number) {
 
 function buildSmoothPath(
   points: MovementTimelinePoint[],
-  key: 'finger' | 'wrist' | 'arm',
+  key: 'bicep' | 'forearm' | 'wristBreak',
   width: number,
   duration: number,
 ) {
@@ -111,9 +111,9 @@ function normalizeData(data: MovementTimelinePoint[], duration: number) {
 
   return Array.from({ length: 5 }).map((_, index) => ({
     time: (duration || 24) * (index / 4),
-    finger: 0,
-    wrist: 0,
-    arm: 0,
+    bicep: 0,
+    forearm: 0,
+    wristBreak: 0,
   }));
 }
 
@@ -197,14 +197,19 @@ export default function MovementTimelineChart({
     });
   };
 
-  const fingerPath = buildSmoothPath(
+  const bicepPath = buildSmoothPath(points, 'bicep', width, normalizedDuration);
+  const forearmPath = buildSmoothPath(
     points,
-    'finger',
+    'forearm',
     width,
     normalizedDuration,
   );
-  const wristPath = buildSmoothPath(points, 'wrist', width, normalizedDuration);
-  const armPath = buildSmoothPath(points, 'arm', width, normalizedDuration);
+  const wristBreakPath = buildSmoothPath(
+    points,
+    'wristBreak',
+    width,
+    normalizedDuration,
+  );
 
   return (
     <View style={styles.container}>
@@ -212,16 +217,18 @@ export default function MovementTimelineChart({
         <Text style={styles.title}>Contribution Over Time</Text>
         <View style={styles.legend}>
           <View style={styles.legendItem}>
-            <View style={[styles.dot, { backgroundColor: colors.finger }]} />
-            <Text style={styles.legendText}>Finger</Text>
+            <View style={[styles.dot, { backgroundColor: colors.bicep }]} />
+            <Text style={styles.legendText}>Bicep</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.dot, { backgroundColor: colors.wrist }]} />
-            <Text style={styles.legendText}>Wrist</Text>
+            <View style={[styles.dot, { backgroundColor: colors.forearm }]} />
+            <Text style={styles.legendText}>Forearm</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.dot, { backgroundColor: colors.arm }]} />
-            <Text style={styles.legendText}>Arm</Text>
+            <View
+              style={[styles.dot, { backgroundColor: colors.wristBreak }]}
+            />
+            <Text style={styles.legendText}>Wrist Break</Text>
           </View>
         </View>
       </View>
@@ -243,20 +250,20 @@ export default function MovementTimelineChart({
             />
           ))}
           <Path
-            path={fingerPath}
-            color={colors.finger}
+            path={bicepPath}
+            color={colors.bicep}
             style="stroke"
             strokeWidth={2.5}
           />
           <Path
-            path={wristPath}
-            color={colors.wrist}
+            path={forearmPath}
+            color={colors.forearm}
             style="stroke"
             strokeWidth={2.5}
           />
           <Path
-            path={armPath}
-            color={colors.arm}
+            path={wristBreakPath}
+            color={colors.wristBreak}
             style="stroke"
             strokeWidth={2.5}
           />

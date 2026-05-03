@@ -50,7 +50,7 @@ function metricFromResult(
 function interpolateTimelineValue(
   data: MovementTimelinePoint[],
   time: number,
-  key: 'finger' | 'wrist' | 'arm',
+  key: 'bicep' | 'forearm' | 'wristBreak',
 ) {
   if (!data.length) {
     return 0;
@@ -74,7 +74,7 @@ function interpolateTimelineValue(
 
 function averageTimelineValue(
   data: MovementTimelinePoint[],
-  key: 'finger' | 'wrist' | 'arm',
+  key: 'bicep' | 'forearm' | 'wristBreak',
   fallback: number,
 ) {
   if (!data.length) {
@@ -156,18 +156,27 @@ function ResultsContent({
   const [videoFrameRate, setVideoFrameRate] = useState(30);
   const [showFrameValues, setShowFrameValues] = useState(false);
   const [selectedUsage, setSelectedUsage] = useState<{
-    finger: number;
-    wrist: number;
-    arm: number;
+    bicep: number;
+    forearm: number;
+    wristBreak: number;
   } | null>(null);
   const isGraphDraggingRef = useRef(false);
   const isVideoPlayingRef = useRef(false);
   const wasPlayingBeforeGraphDragRef = useRef(false);
   const videoRef = useRef<any>(null);
-  const muscleUsage = result.muscleUsage ?? {
-    finger: metricFromResult(result, 'finger_usage', 28),
-    wrist: metricFromResult(result, 'wrist_usage', 52),
-    arm: metricFromResult(result, 'arm_usage', 20),
+  const averageSectionUsage = {
+    bicep: metricFromResult(
+      result,
+      'bicep_usage',
+      result.muscleUsage?.bicep ?? metricFromResult(result, 'arm_usage', 28),
+    ),
+    forearm: metricFromResult(result, 'forearm_usage', 52),
+    wristBreak: metricFromResult(
+      result,
+      'wrist_break_usage',
+      result.muscleUsage?.wristBreak ??
+        metricFromResult(result, 'wrist_usage', 20),
+    ),
   };
   const approach = result.approach ?? {
     category: 'Arm-Heavy' as const,
@@ -182,9 +191,15 @@ function ResultsContent({
         ? 'Medium'
         : 'Low';
   const frameCount = Math.max(
-    result.chartSeries.fingerUsage?.length ?? 0,
-    result.chartSeries.wristUsage?.length ?? 0,
-    result.chartSeries.armUsage?.length ?? 0,
+    result.chartSeries.leftBicep?.length ??
+      result.chartSeries.fingerUsage?.length ??
+      0,
+    result.chartSeries.leftForearm?.length ??
+      result.chartSeries.wristUsage?.length ??
+      0,
+    result.chartSeries.leftWristBreak?.length ??
+      result.chartSeries.armUsage?.length ??
+      0,
     1,
   );
   const selectedIndex = Math.round(scrubProgress * Math.max(frameCount - 1, 1));
@@ -194,33 +209,61 @@ function ResultsContent({
     Math.round(videoDuration * videoFrameRate),
   );
   const chartData = useMemo<MovementTimelinePoint[]>(() => {
-    const finger = result.chartSeries.fingerUsage ?? [
-      28, 35, 31, 33, 30, 37, 34, 36,
-    ];
-    const wrist = result.chartSeries.wristUsage ?? [
-      60, 66, 70, 68, 72, 69, 71, 68,
-    ];
-    const arm = result.chartSeries.armUsage ?? [18, 13, 16, 12, 15, 17, 14, 18];
-    const count = Math.max(finger.length, wrist.length, arm.length, 1);
+    const leftBicep = result.chartSeries.leftBicep;
+    const rightBicep = result.chartSeries.rightBicep;
+    const leftForearm = result.chartSeries.leftForearm;
+    const rightForearm = result.chartSeries.rightForearm;
+    const leftWristBreak = result.chartSeries.leftWristBreak;
+    const rightWristBreak = result.chartSeries.rightWristBreak;
+    const bicep = leftBicep?.length
+      ? leftBicep.map((value, index) =>
+          Math.max(value, rightBicep?.[index] ?? value),
+        )
+      : (result.chartSeries.fingerUsage ?? [28, 35, 31, 33, 30, 37, 34, 36]);
+    const forearm = leftForearm?.length
+      ? leftForearm.map((value, index) =>
+          Math.max(value, rightForearm?.[index] ?? value),
+        )
+      : (result.chartSeries.wristUsage ?? [60, 66, 70, 68, 72, 69, 71, 68]);
+    const wristBreak = leftWristBreak?.length
+      ? leftWristBreak.map((value, index) =>
+          Math.max(value, rightWristBreak?.[index] ?? value),
+        )
+      : (result.chartSeries.armUsage ?? [18, 13, 16, 12, 15, 17, 14, 18]);
+    const count = Math.max(bicep.length, forearm.length, wristBreak.length, 1);
     const timelineDuration = videoDuration || count - 1 || 1;
 
     return Array.from({ length: count }).map((_, index) => ({
       time:
         count === 1 ? 0 : timelineDuration * (index / Math.max(count - 1, 1)),
-      finger: finger[index] ?? finger[finger.length - 1] ?? 0,
-      wrist: wrist[index] ?? wrist[wrist.length - 1] ?? 0,
-      arm: arm[index] ?? arm[arm.length - 1] ?? 0,
+      bicep: bicep[index] ?? bicep[bicep.length - 1] ?? 0,
+      forearm: forearm[index] ?? forearm[forearm.length - 1] ?? 0,
+      wristBreak: wristBreak[index] ?? wristBreak[wristBreak.length - 1] ?? 0,
     }));
   }, [
     result.chartSeries.armUsage,
     result.chartSeries.fingerUsage,
+    result.chartSeries.leftBicep,
+    result.chartSeries.leftForearm,
+    result.chartSeries.leftWristBreak,
+    result.chartSeries.rightBicep,
+    result.chartSeries.rightForearm,
+    result.chartSeries.rightWristBreak,
     result.chartSeries.wristUsage,
     videoDuration,
   ]);
   const derivedAverageUsage = {
-    finger: averageTimelineValue(chartData, 'finger', muscleUsage.finger),
-    wrist: averageTimelineValue(chartData, 'wrist', muscleUsage.wrist),
-    arm: averageTimelineValue(chartData, 'arm', muscleUsage.arm),
+    bicep: averageTimelineValue(chartData, 'bicep', averageSectionUsage.bicep),
+    forearm: averageTimelineValue(
+      chartData,
+      'forearm',
+      averageSectionUsage.forearm,
+    ),
+    wristBreak: averageTimelineValue(
+      chartData,
+      'wristBreak',
+      averageSectionUsage.wristBreak,
+    ),
   };
   const displayedUsage =
     showFrameValues && selectedUsage ? selectedUsage : derivedAverageUsage;
@@ -238,9 +281,17 @@ function ResultsContent({
       : frameAccurateTime /
         Math.max(chartData[chartData.length - 1]?.time ?? 1, 1);
     setSelectedUsage({
-      finger: interpolateTimelineValue(chartData, frameAccurateTime, 'finger'),
-      wrist: interpolateTimelineValue(chartData, frameAccurateTime, 'wrist'),
-      arm: interpolateTimelineValue(chartData, frameAccurateTime, 'arm'),
+      bicep: interpolateTimelineValue(chartData, frameAccurateTime, 'bicep'),
+      forearm: interpolateTimelineValue(
+        chartData,
+        frameAccurateTime,
+        'forearm',
+      ),
+      wristBreak: interpolateTimelineValue(
+        chartData,
+        frameAccurateTime,
+        'wristBreak',
+      ),
     });
     setShowFrameValues(true);
     setScrubProgress(Math.min(1, Math.max(0, normalizedProgress)));
@@ -453,18 +504,18 @@ function ResultsContent({
 
       <Pressable style={s.row} onPress={showAverageValues}>
         <MuscleTile
-          label="Finger"
-          value={displayedUsage.finger}
+          label="Bicep"
+          value={displayedUsage.bicep}
           color={dashboard.blue}
         />
         <MuscleTile
-          label="Wrist"
-          value={displayedUsage.wrist}
+          label="Forearm"
+          value={displayedUsage.forearm}
           color={dashboard.green}
         />
         <MuscleTile
-          label="Arm"
-          value={displayedUsage.arm}
+          label="Wrist Break"
+          value={displayedUsage.wristBreak}
           color={dashboard.gold}
         />
       </Pressable>
@@ -517,7 +568,9 @@ function ResultsScreen() {
   const query = useAnalysisResultQuery(route.params.sessionId);
   const sessionQuery = useSessionQuery(route.params.sessionId);
   const result = live.result ?? query.data;
+  const overlayVideoUrl = useVideoUrl(result?.artifactPaths?.overlayVideoPath);
   const rawVideoUrl = useVideoUrl(sessionQuery.data?.rawVideoPath);
+  const previewVideoUrl = overlayVideoUrl ?? rawVideoUrl;
 
   const styles = useMemo(
     () =>
@@ -544,7 +597,7 @@ function ResultsScreen() {
       ) : result ? (
         <ResultsContent
           result={result}
-          videoUrl={rawVideoUrl}
+          videoUrl={previewVideoUrl}
           projectName={sessionQuery.data?.projectName ?? ''}
         />
       ) : (

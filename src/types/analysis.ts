@@ -111,6 +111,9 @@ export interface AnalysisResult {
     finger: number;
     wrist: number;
     arm: number;
+    bicep?: number;
+    forearm?: number;
+    wristBreak?: number;
   };
   approach?: {
     category: 'Arm-Heavy' | 'Fulcrum Lift' | 'Lead by the Bead' | 'Wrist Break';

@@ -10,6 +10,7 @@ def sample_frames(
     video_path: Path, max_frames: int = 180
 ) -> tuple[list[np.ndarray], float]:
     capture = cv2.VideoCapture(str(video_path))
+    capture.set(cv2.CAP_PROP_ORIENTATION_AUTO, 1)
     if not capture.isOpened():
         raise ValueError("Unable to open uploaded video.")
 

@@ -2,7 +2,12 @@ from __future__ import annotations
 
 
 def shape_result(
-    metrics: dict, *, session_id: str, user_id: str, thumbnail_path: str | None
+    metrics: dict,
+    *,
+    session_id: str,
+    user_id: str,
+    thumbnail_path: str | None,
+    overlay_video_path: str | None = None,
 ) -> dict:
     scores = metrics["scores"]
     height_delta = metrics["heightDelta"]
@@ -86,25 +91,25 @@ def shape_result(
         "summaryScores": scores,
         "metrics": [
             {
-                "id": "finger_usage",
-                "label": "Finger",
-                "value": muscle_usage.get("finger", 0),
+                "id": "bicep_usage",
+                "label": "Bicep",
+                "value": muscle_usage.get("bicep", muscle_usage.get("arm", 0)),
                 "unit": "%",
-                "description": "Estimated contribution from hand spread changes.",
+                "description": "Estimated upper-arm activation from calibrated shoulder-to-elbow position.",
             },
             {
-                "id": "wrist_usage",
-                "label": "Wrist",
-                "value": muscle_usage.get("wrist", 0),
+                "id": "forearm_usage",
+                "label": "Forearm",
+                "value": muscle_usage.get("forearm", muscle_usage.get("arm", 0)),
                 "unit": "%",
-                "description": "Estimated contribution from wrist break angle changes.",
+                "description": "Estimated forearm activation from calibrated elbow angle.",
             },
             {
-                "id": "arm_usage",
-                "label": "Arm",
-                "value": muscle_usage.get("arm", 0),
+                "id": "wrist_break_usage",
+                "label": "Wrist Break",
+                "value": muscle_usage.get("wristBreak", muscle_usage.get("wrist", 0)),
                 "unit": "%",
-                "description": "Estimated contribution from shoulder and elbow angle changes.",
+                "description": "Estimated wrist break activation from calibrated wrist angle.",
             },
             {
                 "id": "timing_variation",
@@ -161,5 +166,8 @@ def shape_result(
         "muscleUsage": muscle_usage,
         "approach": approach,
         "angles": metrics.get("angles", {}),
-        "artifactPaths": {"thumbnailPath": thumbnail_path},
+        "artifactPaths": {
+            "thumbnailPath": thumbnail_path,
+            "overlayVideoPath": overlay_video_path,
+        },
     }
