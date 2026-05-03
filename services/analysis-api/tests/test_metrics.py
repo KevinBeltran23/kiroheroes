@@ -20,7 +20,7 @@ def test_compute_metrics_returns_scores():
     assert result["rightRange"] > 0
 
 
-def test_contribution_series_sum_to_percentages():
+def test_contribution_summary_averages_match_series():
     trajectories = {
         "left_wrist": [(0.1, value) for value in [0.2, 0.5, 0.2, 0.5, 0.2]],
         "right_wrist": [(0.2, value) for value in [0.25, 0.52, 0.25, 0.5, 0.25]],
@@ -46,9 +46,18 @@ def test_contribution_series_sum_to_percentages():
     frame_metrics = result["frameMetrics"]
     usage = result["muscleUsage"]
 
-    assert round(usage["finger"] + usage["wrist"] + usage["arm"]) == 100
-    for finger, wrist, arm in zip(
-        frame_metrics["finger"], frame_metrics["wrist"], frame_metrics["arm"]
-    ):
-        if finger or wrist or arm:
-            assert round(finger + wrist + arm) == 100
+    assert usage["finger"] == round(
+        sum(frame_metrics["finger"]) / len(frame_metrics["finger"]), 1
+    )
+    assert usage["wrist"] == round(
+        sum(frame_metrics["wrist"]) / len(frame_metrics["wrist"]), 1
+    )
+    assert usage["arm"] == round(
+        sum(frame_metrics["arm"]) / len(frame_metrics["arm"]), 1
+    )
+    assert any(
+        finger + wrist + arm > 100
+        for finger, wrist, arm in zip(
+            frame_metrics["finger"], frame_metrics["wrist"], frame_metrics["arm"]
+        )
+    )

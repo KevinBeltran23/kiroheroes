@@ -96,49 +96,13 @@ def _resample(values: list[float], target_count: int = 48) -> list[float]:
     return output
 
 
-def _normalized_contribution_series(
+def _independent_contribution_series(
     finger: list[float], wrist: list[float], arm: list[float], target_count: int = 48
 ) -> dict[str, list[float]]:
-    count = max(len(finger), len(wrist), len(arm), 1)
-    normalized = {"finger": [], "wrist": [], "arm": []}
-    last_split = {"finger": 33.3, "wrist": 33.3, "arm": 33.4}
-
-    for index in range(count):
-        finger_value = (
-            finger[index]
-            if index < len(finger) and not math.isnan(finger[index])
-            else 0.0
-        )
-        wrist_value = (
-            wrist[index] if index < len(wrist) and not math.isnan(wrist[index]) else 0.0
-        )
-        arm_value = (
-            arm[index] if index < len(arm) and not math.isnan(arm[index]) else 0.0
-        )
-        total = finger_value + wrist_value + arm_value
-
-        if total <= 0:
-            normalized["finger"].append(last_split["finger"])
-            normalized["wrist"].append(last_split["wrist"])
-            normalized["arm"].append(last_split["arm"])
-            continue
-
-        finger_percent = round(finger_value / total * 100.0, 1)
-        wrist_percent = round(wrist_value / total * 100.0, 1)
-        arm_percent = round(100.0 - finger_percent - wrist_percent, 1)
-        last_split = {
-            "finger": finger_percent,
-            "wrist": wrist_percent,
-            "arm": arm_percent,
-        }
-        normalized["finger"].append(last_split["finger"])
-        normalized["wrist"].append(last_split["wrist"])
-        normalized["arm"].append(last_split["arm"])
-
     return {
-        "finger": _resample(normalized["finger"], target_count),
-        "wrist": _resample(normalized["wrist"], target_count),
-        "arm": _resample(normalized["arm"], target_count),
+        "finger": _resample(_normalize(finger, multiplier=0.9), target_count),
+        "wrist": _resample(_normalize(wrist, multiplier=1.15), target_count),
+        "arm": _resample(_normalize(arm), target_count),
     }
 
 
@@ -287,9 +251,9 @@ def compute_metrics(trajectories: dict[str, list[Point]], sample_fps: float) -> 
         right_angles["handSpread"]
     )
 
-    contribution_series = _normalized_contribution_series(
+    contribution_series = _independent_contribution_series(
         finger_motion,
-        [value * 1.15 for value in wrist_motion],
+        wrist_motion,
         elbow_motion + shoulder_motion,
     )
     muscle_usage = {
