@@ -9,6 +9,7 @@ export type RootStackParamList = {
   TermsAcceptance: undefined;
   SessionStatus: { sessionId: string; jobId?: string };
   Results: { sessionId: string };
+  VideoRecorder: undefined;
 };
 
 export type MainTabParamList = {

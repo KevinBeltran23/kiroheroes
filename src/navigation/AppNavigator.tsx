@@ -12,6 +12,7 @@ import TermsOfServiceScreen from '../screens/legal/TermsOfServiceScreen';
 import AboutScreen from '../screens/legal/AboutScreen';
 import SessionStatusScreen from '../screens/main/SessionStatusScreen';
 import ResultsScreen from '../screens/main/ResultsScreen';
+import VideoRecorderScreen from '../screens/main/VideoRecorderScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -38,6 +39,11 @@ const AppNavigator = () => {
       <Stack.Screen name="Main" component={MainNavigator} />
       <Stack.Screen name="SessionStatus" component={SessionStatusScreen} />
       <Stack.Screen name="Results" component={ResultsScreen} />
+      <Stack.Screen
+        name="VideoRecorder"
+        component={VideoRecorderScreen}
+        options={{ orientation: 'landscape' }}
+      />
     </Stack.Navigator>
   );
 };
