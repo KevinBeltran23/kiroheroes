@@ -19,32 +19,10 @@ import { useColors } from '../../hooks/useColors';
 import { useResponsiveStyles } from '../../hooks/useResponsiveStyles';
 import { useCreateAnalysisSession } from '../../hooks/useCreateAnalysisSession';
 import { RootStackParamList } from '../../navigation/types';
-import { ExerciseType } from '../../types/analysis';
 import { getUserFacingMessage } from '../../services/errorHandler';
 
-const exercises: Array<{ value: ExerciseType; label: string; description: string }> = [
-  {
-    value: 'single_strokes',
-    label: 'Single strokes',
-    description: 'Alternating right-left strokes with even spacing.',
-  },
-  {
-    value: 'double_strokes',
-    label: 'Double strokes',
-    description: 'Two consecutive strokes per hand with rebound control.',
-  },
-  {
-    value: 'paradiddles',
-    label: 'Paradiddles',
-    description: 'RLRR LRLL pattern with consistent accents and paths.',
-  },
-];
-
 function NewSessionScreen() {
-  const [exerciseType, setExerciseType] = useState<ExerciseType>('single_strokes');
-  const [tempoTarget, setTempoTarget] = useState('');
   const [projectName, setProjectName] = useState('');
-  const [drumHeightInches, setDrumHeightInches] = useState('36');
   const [cameraAngle, setCameraAngle] = useState<'front' | 'front_left' | 'front_right' | 'side'>('front');
   const [notes, setNotes] = useState('');
   const [videoUri, setVideoUri] = useState<string | null>(null);
@@ -61,17 +39,6 @@ function NewSessionScreen() {
       return;
     }
 
-    const parsedTempo = tempoTarget.trim() ? Number(tempoTarget) : null;
-    if (parsedTempo !== null && (!Number.isFinite(parsedTempo) || parsedTempo < 30)) {
-      Alert.alert('Tempo target', 'Enter a valid BPM target or leave it blank.');
-      return;
-    }
-    const parsedHeight = drumHeightInches.trim() ? Number(drumHeightInches) : null;
-    if (parsedHeight !== null && (!Number.isFinite(parsedHeight) || parsedHeight < 20)) {
-      Alert.alert('Drum height', 'Enter a realistic drum height in inches.');
-      return;
-    }
-
     setIsSubmitting(true);
 
     // The mutation creates the session doc instantly and kicks off
@@ -79,10 +46,8 @@ function NewSessionScreen() {
     // screen as soon as we have a sessionId.
     createSession.mutate(
       {
-        exerciseType,
-        tempoTarget: parsedTempo,
+        exerciseType: 'single_strokes',
         projectName: projectName.trim(),
-        drumHeightInches: parsedHeight,
         cameraAngle,
         notes,
         videoUri,
@@ -127,29 +92,6 @@ function NewSessionScreen() {
       fontWeight: '700',
       marginBottom: scaleHeight(10),
       marginTop: scaleHeight(18),
-    },
-    option: {
-      backgroundColor: colors.backgroundSecondary,
-      borderColor: colors.borderLight,
-      borderWidth: proportionalSize(1),
-      borderRadius: proportionalSize(8),
-      padding: proportionalSize(14),
-      marginBottom: scaleHeight(10),
-    },
-    optionActive: {
-      borderColor: colors.primary,
-      backgroundColor: colors.primaryLight,
-    },
-    optionTitle: {
-      color: colors.textPrimary,
-      fontSize: scaleFont(15),
-      fontWeight: '700',
-      marginBottom: scaleHeight(4),
-    },
-    optionDescription: {
-      color: colors.textSecondary,
-      fontSize: scaleFont(13),
-      lineHeight: scaleFont(18),
     },
     input: {
       backgroundColor: colors.backgroundSecondary,
@@ -211,41 +153,6 @@ function NewSessionScreen() {
           onChangeText={setProjectName}
           placeholder="Front Ensemble Block - Day 4"
           placeholderTextColor={colors.textTertiary}
-          style={s.input}
-        />
-
-        <Text style={s.label}>Exercise</Text>
-        {exercises.map(exercise => (
-          <TouchableOpacity
-            key={exercise.value}
-            style={[
-              s.option,
-              exercise.value === exerciseType ? s.optionActive : null,
-            ]}
-            onPress={() => setExerciseType(exercise.value)}
-          >
-            <Text style={s.optionTitle}>{exercise.label}</Text>
-            <Text style={s.optionDescription}>{exercise.description}</Text>
-          </TouchableOpacity>
-        ))}
-
-        <Text style={s.label}>Tempo target</Text>
-        <TextInput
-          value={tempoTarget}
-          onChangeText={setTempoTarget}
-          placeholder="Optional BPM"
-          placeholderTextColor={colors.textTertiary}
-          keyboardType="number-pad"
-          style={s.input}
-        />
-
-        <Text style={s.label}>Drum height</Text>
-        <TextInput
-          value={drumHeightInches}
-          onChangeText={setDrumHeightInches}
-          placeholder="Height in inches"
-          placeholderTextColor={colors.textTertiary}
-          keyboardType="number-pad"
           style={s.input}
         />
 

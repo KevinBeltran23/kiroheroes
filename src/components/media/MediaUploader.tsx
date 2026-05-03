@@ -186,16 +186,14 @@ function MediaUploader({ selectedUri, onVideoSelected }: MediaUploaderProps) {
   // ── Video selected: show preview ──
   if (selectedUri) {
     return (
-      <View style={s.container}>
-        <View style={s.previewWrap}>
-          <Video
-            source={{ uri: selectedUri }}
-            style={s.video}
-            resizeMode="contain"
-            controls
-            paused
-          />
-        </View>
+      <View style={[s.container, { borderStyle: 'solid', borderColor: colors.border }]}>
+        <Video
+          source={{ uri: selectedUri }}
+          style={s.video}
+          resizeMode="contain"
+          controls
+          paused
+        />
         <View style={s.readyBadge}>
           <Icon
             name="check-circle"
