@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import math
+import shutil
+import subprocess
 from pathlib import Path
 
 import cv2
@@ -76,6 +78,34 @@ def _writer_for_path(
     return writer
 
 
+def _mux_original_audio(
+    *, original_video_path: Path, silent_overlay_path: Path, output_path: Path
+) -> Path:
+    command = [
+        "ffmpeg",
+        "-y",
+        "-i",
+        str(silent_overlay_path),
+        "-i",
+        str(original_video_path),
+        "-map",
+        "0:v:0",
+        "-map",
+        "1:a?",
+        "-c:v",
+        "copy",
+        "-c:a",
+        "aac",
+        "-shortest",
+        str(output_path),
+    ]
+    try:
+        subprocess.run(command, check=True, capture_output=True)
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        shutil.copyfile(silent_overlay_path, output_path)
+    return output_path
+
+
 def write_pose_overlay_video(video_path: Path, output_path: Path) -> Path:
     capture = cv2.VideoCapture(str(video_path))
     capture.set(cv2.CAP_PROP_ORIENTATION_AUTO, 1)
@@ -90,7 +120,8 @@ def write_pose_overlay_video(video_path: Path, output_path: Path) -> Path:
 
     height, width = first_frame.shape[:2]
 
-    writer = _writer_for_path(output_path, fps, width, height)
+    silent_overlay_path = output_path.with_name(f"{output_path.stem}-silent.mp4")
+    writer = _writer_for_path(silent_overlay_path, fps, width, height)
     pose = mp.solutions.pose.Pose(
         static_image_mode=False,
         model_complexity=1,
@@ -198,4 +229,8 @@ def write_pose_overlay_video(video_path: Path, output_path: Path) -> Path:
         capture.release()
         writer.release()
 
-    return output_path
+    return _mux_original_audio(
+        original_video_path=video_path,
+        silent_overlay_path=silent_overlay_path,
+        output_path=output_path,
+    )

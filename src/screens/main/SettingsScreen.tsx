@@ -5,7 +5,6 @@ import {
   Image,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   View,
@@ -39,8 +38,12 @@ function ProfileSection({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [displayName, setDisplayName] = useState(user?.displayName || '');
-  const [skillLevel, setSkillLevel] = useState<string>(user?.skillLevel || 'beginner');
-  const [handedness, setHandedness] = useState<string>(user?.handedness || 'right');
+  const [skillLevel, setSkillLevel] = useState<string>(
+    user?.skillLevel || 'beginner',
+  );
+  const [handedness, setHandedness] = useState<string>(
+    user?.handedness || 'right',
+  );
   const colors = useColors();
   const { scaleHeight, scaleWidth, proportionalSize, scaleFont } =
     useResponsiveStyles();
@@ -84,14 +87,16 @@ function ProfileSection({
       width: scaleWidth(86),
       height: scaleWidth(86),
       borderRadius: proportionalSize(43),
-      backgroundColor: colors.primary,
+      backgroundColor: colors.backgroundSecondary,
+      borderColor: colors.primary,
+      borderWidth: proportionalSize(1),
       alignItems: 'center',
       justifyContent: 'center',
       overflow: 'hidden',
       marginBottom: scaleHeight(14),
     },
     avatarText: {
-      color: colors.textInverse,
+      color: colors.primary,
       fontSize: scaleFont(34),
       fontWeight: '800',
     },
@@ -116,7 +121,11 @@ function ProfileSection({
       fontSize: scaleFont(15),
       marginBottom: scaleHeight(10),
     },
-    row: { flexDirection: 'row', gap: scaleWidth(10), marginTop: scaleHeight(8) },
+    row: {
+      flexDirection: 'row',
+      gap: scaleWidth(10),
+      marginTop: scaleHeight(8),
+    },
     button: { flex: 1 },
     editButton: { marginTop: scaleHeight(16) },
   });
@@ -125,10 +134,15 @@ function ProfileSection({
     <View style={s.section}>
       <View style={s.avatar}>
         {user?.photoURL ? (
-          <Image source={{ uri: user.photoURL }} style={{ width: '100%', height: '100%' }} />
+          <Image
+            source={{ uri: user.photoURL }}
+            style={{ width: '100%', height: '100%' }}
+          />
         ) : (
           <Text style={s.avatarText}>
-            {user?.displayName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?'}
+            {user?.displayName?.[0]?.toUpperCase() ||
+              user?.email?.[0]?.toUpperCase() ||
+              '?'}
           </Text>
         )}
       </View>
@@ -170,7 +184,8 @@ function ProfileSection({
           <Text style={s.name}>{user?.displayName || 'Drummer'}</Text>
           <Text style={s.email}>{user?.email}</Text>
           <Text style={s.email}>
-            {user?.skillLevel || 'beginner'} - {user?.handedness || 'right'} handed
+            {user?.skillLevel || 'beginner'} - {user?.handedness || 'right'}{' '}
+            handed
           </Text>
           <Button
             label="Edit Profile"
@@ -204,12 +219,12 @@ function SettingsScreen() {
       marginBottom: scaleHeight(20),
     },
     row: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      backgroundColor: colors.backgroundSecondary,
+      borderColor: colors.border,
+      borderRadius: proportionalSize(8),
+      borderWidth: proportionalSize(1),
       paddingVertical: scaleHeight(15),
-      borderBottomColor: colors.borderLight,
-      borderBottomWidth: proportionalSize(1),
+      paddingHorizontal: proportionalSize(13),
     },
     rowText: { color: colors.textPrimary, fontSize: scaleFont(16) },
     signOut: { marginTop: scaleHeight(28) },
@@ -240,33 +255,7 @@ function SettingsScreen() {
       {!!user && (
         <>
           <View style={s.row}>
-            <Text style={s.rowText}>Dark mode</Text>
-            <Switch
-              trackColor={{ false: colors.gray300, true: colors.primary }}
-              thumbColor={colors.white}
-              value={user.darkMode}
-              onValueChange={value => updateUser({ darkMode: value })}
-            />
-          </View>
-          <View style={s.row}>
-            <Text style={s.rowText}>High contrast</Text>
-            <Switch
-              trackColor={{ false: colors.gray300, true: colors.primary }}
-              thumbColor={colors.white}
-              value={user.highContrast}
-              onValueChange={value => updateUser({ highContrast: value })}
-            />
-          </View>
-          <View style={s.row}>
-            <Text style={s.rowText}>Color blind mode</Text>
-            <Switch
-              trackColor={{ false: colors.gray300, true: colors.primary }}
-              thumbColor={colors.white}
-              value={user.colorBlindMode === 'red-green'}
-              onValueChange={value =>
-                updateUser({ colorBlindMode: value ? 'red-green' : 'none' })
-              }
-            />
+            <Text style={s.rowText}>Project data syncs with your account.</Text>
           </View>
         </>
       )}
