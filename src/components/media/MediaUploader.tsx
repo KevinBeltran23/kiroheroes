@@ -1,22 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  DeviceEventEmitter,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import Video from 'react-native-video';
 import { useColors } from '../../hooks/useColors';
 import { useResponsiveStyles } from '../../hooks/useResponsiveStyles';
-import { RootStackParamList } from '../../navigation/types';
-import { VIDEO_RECORDED_EVENT } from '../../screens/main/VideoRecorderScreen';
 
 interface MediaUploaderProps {
   selectedUri?: string | null;
@@ -26,26 +21,27 @@ interface MediaUploaderProps {
 function MediaUploader({ selectedUri, onVideoSelected }: MediaUploaderProps) {
   const [loading, setLoading] = useState(false);
   const colors = useColors();
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { scaleHeight, scaleWidth, proportionalSize, scaleFont } =
     useResponsiveStyles();
 
-  // Listen for videos coming back from the recorder screen
-  useEffect(() => {
-    const sub = DeviceEventEmitter.addListener(
-      VIDEO_RECORDED_EVENT,
-      (event: { uri: string }) => {
-        if (event?.uri) {
-          onVideoSelected(event.uri);
-        }
-      },
-    );
-    return () => sub.remove();
-  }, [onVideoSelected]);
+  const recordVideo = async () => {
+    try {
+      setLoading(true);
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['videos'],
+        allowsEditing: false,
+        quality: 1,
+        videoMaxDuration: 30,
+      });
 
-  const openRecorder = () => {
-    navigation.navigate('VideoRecorder');
+      if (!result.canceled && result.assets[0]?.uri) {
+        onVideoSelected(result.assets[0].uri);
+      }
+    } catch {
+      Alert.alert('Recording Error', 'Failed to record video. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const pickFromLibrary = async () => {
@@ -75,6 +71,10 @@ function MediaUploader({ selectedUri, onVideoSelected }: MediaUploaderProps) {
       borderStyle: 'dashed',
       borderColor: colors.primary,
       overflow: 'hidden',
+    },
+    containerPreview: {
+      borderStyle: 'solid',
+      borderColor: colors.border,
     },
     loadingContainer: {
       minHeight: scaleHeight(120),
@@ -129,12 +129,9 @@ function MediaUploader({ selectedUri, onVideoSelected }: MediaUploaderProps) {
     secondaryText: { color: colors.primary },
 
     /* preview state */
-    previewWrap: {
-      position: 'relative',
-    },
     video: {
       width: '100%',
-      height: scaleHeight(180),
+      aspectRatio: 16 / 9,
       backgroundColor: '#000',
     },
     previewActions: {
@@ -178,7 +175,7 @@ function MediaUploader({ selectedUri, onVideoSelected }: MediaUploaderProps) {
     return (
       <View style={[s.container, s.loadingContainer]}>
         <ActivityIndicator size={proportionalSize(30)} color={colors.primary} />
-        <Text style={s.loadingText}>Opening video picker…</Text>
+        <Text style={s.loadingText}>Opening camera…</Text>
       </View>
     );
   }
@@ -186,7 +183,7 @@ function MediaUploader({ selectedUri, onVideoSelected }: MediaUploaderProps) {
   // ── Video selected: show preview ──
   if (selectedUri) {
     return (
-      <View style={[s.container, { borderStyle: 'solid', borderColor: colors.border }]}>
+      <View style={[s.container, s.containerPreview]}>
         <Video
           source={{ uri: selectedUri }}
           style={s.video}
@@ -203,7 +200,7 @@ function MediaUploader({ selectedUri, onVideoSelected }: MediaUploaderProps) {
           <Text style={s.readyText}>Video ready for upload</Text>
         </View>
         <View style={s.previewActions}>
-          <TouchableOpacity style={s.changeBtn} onPress={openRecorder}>
+          <TouchableOpacity style={s.changeBtn} onPress={recordVideo}>
             <Icon
               name="video-outline"
               size={proportionalSize(16)}
@@ -233,7 +230,7 @@ function MediaUploader({ selectedUri, onVideoSelected }: MediaUploaderProps) {
           visible.
         </Text>
         <View style={s.row}>
-          <TouchableOpacity style={s.btn} onPress={openRecorder}>
+          <TouchableOpacity style={s.btn} onPress={recordVideo}>
             <Icon
               name="video-outline"
               size={proportionalSize(18)}
