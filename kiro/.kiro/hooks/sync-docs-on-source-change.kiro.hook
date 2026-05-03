@@ -1,0 +1,23 @@
+{
+  "enabled": true,
+  "name": "Sync Docs on Source Change",
+  "description": "When any source file changes (TypeScript, Python, or key config files), asks the agent to update README.md or docs to reflect the change.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "kiroheroes/src/**/*.ts",
+      "kiroheroes/src/**/*.tsx",
+      "kiroheroes/services/**/*.py",
+      "kiroheroes/app.config.js",
+      "kiroheroes/app.json",
+      "kiroheroes/package.json",
+      "kiroheroes/firestore.rules",
+      "kiroheroes/firestore.indexes.json"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A source file was just edited. Review the change and determine if it affects any user-facing behavior, API contracts, setup steps, configuration, or architecture. If it does, update the relevant documentation — either kiroheroes/README.md or any files in a /docs folder if one exists. Keep the docs accurate and concise. Do not update docs for trivial internal refactors."
+  }
+}
