@@ -14,6 +14,7 @@ import mediapipe as mp
 # lo > hi inverts the scale (angle decreases as the joint activates).
 # Reference images: set_position.png (0%), bicep_100.png, forearm_100.png,
 #                   wrist_break_100.png (100% per group).
+# Wrist ranges use MediaPipe Hands middle-MCP (landmark 9); others use Pose only.
 # ---------------------------------------------------------------------------
 LEFT_BICEP_RANGE: tuple[float, float] = (
     10.5,
@@ -24,9 +25,9 @@ LEFT_FOREARM_RANGE: tuple[float, float] = (
     23.9,
 )  # elbow flexion:        set_position → forearm_100
 LEFT_WRIST_RANGE: tuple[float, float] = (
-    132.7,
-    90.0,
-)  # wrist flexion:        set_position → estimated
+    62.9,
+    90.5,
+)  # wrist supination:     set_position → wrist_break_100 (Hands wrist→middle-MCP from vertical)
 
 RIGHT_BICEP_RANGE: tuple[float, float] = (
     25.4,
@@ -37,9 +38,9 @@ RIGHT_FOREARM_RANGE: tuple[float, float] = (
     20.8,
 )  # elbow flexion:        set_position → forearm_100
 RIGHT_WRIST_RANGE: tuple[float, float] = (
-    178.8,
-    68.2,
-)  # wrist flexion:        set_position → wrist_break_100
+    96.8,
+    37.1,
+)  # wrist break (flexion up): set_position → wrist_break_100 (Pose elbow/wrist + Hands middle-MCP)
 # ---------------------------------------------------------------------------
 
 
@@ -172,6 +173,13 @@ def preview_pose(video_path: Path, max_width: int, output_path: Path | None) -> 
     drawing = mp.solutions.drawing_utils
     styles = mp.solutions.drawing_styles
 
+    hands = mp.solutions.hands.Hands(
+        static_image_mode=False,
+        max_num_hands=2,
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5,
+    )
+
     # Determine output frame size (after optional resize)
     if max_width > 0 and src_w > max_width:
         out_w = max_width
@@ -195,11 +203,10 @@ def preview_pose(video_path: Path, max_width: int, output_path: Path | None) -> 
                 break
             frame_num += 1
 
-            # Fix orientation
-            frame = cv2.flip(frame, -1)
-
+            frame = cv2.flip(frame, -1)  # correct upside-down + mirrored source video
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             result = pose.process(rgb)
+            hands_result = hands.process(rgb)
 
             if result.pose_landmarks:
                 drawing.draw_landmarks(
@@ -216,7 +223,22 @@ def preview_pose(video_path: Path, max_width: int, output_path: Path | None) -> 
                     pt = lm[idx]
                     return (pt.x * w, pt.y * h)
 
-                # (label_prefix, shoulder, elbow, wrist, index, color, b_range, f_range, w_range)
+                # Match detected hands to left/right by proximity to Pose wrist landmarks
+                hand_lm_map: dict[str, object] = {"L": None, "R": None}
+                if hands_result.multi_hand_landmarks:
+                    lw, rw = _px(15), _px(16)
+                    for hnd_lm in hands_result.multi_hand_landmarks:
+                        hw = hnd_lm.landmark[0]
+                        hw_px = (hw.x * w, hw.y * h)
+                        dl = hypot(hw_px[0] - lw[0], hw_px[1] - lw[1])
+                        dr = hypot(hw_px[0] - rw[0], hw_px[1] - rw[1])
+                        key = "L" if dl < dr else "R"
+                        if hand_lm_map[key] is None:
+                            hand_lm_map[key] = hnd_lm.landmark
+
+                # (label_prefix, shoulder, elbow, wrist, index, color, b_range, f_range, w_range, wrist_supination)
+                # wrist_supination=True  → left:  direction of wrist→index from vertical (captures rotation)
+                # wrist_supination=False → right: angle at wrist joint elbow→wrist→index (captures flex)
                 sides = [
                     (
                         "L",
@@ -228,6 +250,7 @@ def preview_pose(video_path: Path, max_width: int, output_path: Path | None) -> 
                         LEFT_BICEP_RANGE,
                         LEFT_FOREARM_RANGE,
                         LEFT_WRIST_RANGE,
+                        True,
                     ),
                     (
                         "R",
@@ -239,9 +262,21 @@ def preview_pose(video_path: Path, max_width: int, output_path: Path | None) -> 
                         RIGHT_BICEP_RANGE,
                         RIGHT_FOREARM_RANGE,
                         RIGHT_WRIST_RANGE,
+                        False,
                     ),
                 ]
-                for prefix, si, ei, wi, ii, color, b_range, f_range, w_range in sides:
+                for (
+                    prefix,
+                    si,
+                    ei,
+                    wi,
+                    ii,
+                    color,
+                    b_range,
+                    f_range,
+                    w_range,
+                    wrist_supination,
+                ) in sides:
                     shoulder = _px(si)
                     elbow = _px(ei)
                     wrist = _px(wi)
@@ -268,8 +303,32 @@ def preview_pose(video_path: Path, max_width: int, output_path: Path | None) -> 
                             frame, midpt, f"{prefix}Forearm", forearm_pct, color
                         )
 
-                    if vis(ei, wi, ii):
-                        wrist_pct = _to_pct(_angle_3pt(elbow, wrist, index), *w_range)
+                    hlm = hand_lm_map[prefix]
+                    if hlm is not None:
+                        hmid9 = (hlm[9].x * w, hlm[9].y * h)
+                        if wrist_supination:
+                            # Left: supination — Hands wrist(0)→middle-MCP(9) axis direction from vertical
+                            hwrist0 = (hlm[0].x * w, hlm[0].y * h)
+                            wrist_angle = _forearm_orientation(hwrist0, hmid9)
+                            wrist_pct = _to_pct(wrist_angle, *w_range)
+                            _draw_angle_marker(
+                                frame, wrist, f"{prefix}Wrist", wrist_pct, color
+                            )
+                        elif vis(ei, wi):
+                            # Right: wrist break — Pose elbow/wrist + Hands middle-MCP(9) for cleaner angle
+                            wrist_angle = _angle_3pt(elbow, wrist, hmid9)
+                            wrist_pct = _to_pct(wrist_angle, *w_range)
+                            _draw_angle_marker(
+                                frame, wrist, f"{prefix}Wrist", wrist_pct, color
+                            )
+                    elif vis(ei, wi, ii):
+                        # Fallback: Pose-only (no Hands detection this frame)
+                        wrist_angle = (
+                            _forearm_orientation(wrist, index)
+                            if wrist_supination
+                            else _angle_3pt(elbow, wrist, index)
+                        )
+                        wrist_pct = _to_pct(wrist_angle, *w_range)
                         _draw_angle_marker(
                             frame, wrist, f"{prefix}Wrist", wrist_pct, color
                         )
@@ -288,6 +347,7 @@ def preview_pose(video_path: Path, max_width: int, output_path: Path | None) -> 
                     break
     finally:
         pose.close()
+        hands.close()
         capture.release()
         if writer is not None:
             writer.release()

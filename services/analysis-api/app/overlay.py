@@ -130,6 +130,12 @@ def write_pose_overlay_video(video_path: Path, output_path: Path) -> Path:
         min_detection_confidence=0.5,
         min_tracking_confidence=0.5,
     )
+    hands = mp.solutions.hands.Hands(
+        static_image_mode=False,
+        max_num_hands=2,
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5,
+    )
     drawing = mp.solutions.drawing_utils
     styles = mp.solutions.drawing_styles
 
@@ -141,6 +147,7 @@ def write_pose_overlay_video(video_path: Path, output_path: Path) -> Path:
 
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             result = pose.process(rgb)
+            hands_result = hands.process(rgb)
             if result.pose_landmarks:
                 drawing.draw_landmarks(
                     frame,
@@ -158,6 +165,33 @@ def write_pose_overlay_video(video_path: Path, output_path: Path) -> Path:
                 def visible(*indices: int) -> bool:
                     return all(landmarks[index].visibility >= 0.35 for index in indices)
 
+                hand_map: dict[str, object | None] = {"L": None, "R": None}
+                if hands_result.multi_hand_landmarks:
+                    left_wrist = px(15)
+                    right_wrist = px(16)
+                    for hand_landmarks in hands_result.multi_hand_landmarks:
+                        drawing.draw_landmarks(
+                            frame,
+                            hand_landmarks,
+                            mp.solutions.hands.HAND_CONNECTIONS,
+                        )
+                        hand_wrist = hand_landmarks.landmark[0]
+                        hand_wrist_px = (
+                            hand_wrist.x * frame_w,
+                            hand_wrist.y * frame_h,
+                        )
+                        left_distance = math.hypot(
+                            hand_wrist_px[0] - left_wrist[0],
+                            hand_wrist_px[1] - left_wrist[1],
+                        )
+                        right_distance = math.hypot(
+                            hand_wrist_px[0] - right_wrist[0],
+                            hand_wrist_px[1] - right_wrist[1],
+                        )
+                        side = "L" if left_distance < right_distance else "R"
+                        if hand_map[side] is None:
+                            hand_map[side] = hand_landmarks.landmark
+
                 sides = [
                     (
                         "L",
@@ -169,6 +203,7 @@ def write_pose_overlay_video(video_path: Path, output_path: Path) -> Path:
                         LEFT_BICEP_RANGE,
                         LEFT_FOREARM_RANGE,
                         LEFT_WRIST_RANGE,
+                        True,
                     ),
                     (
                         "R",
@@ -180,6 +215,7 @@ def write_pose_overlay_video(video_path: Path, output_path: Path) -> Path:
                         RIGHT_BICEP_RANGE,
                         RIGHT_FOREARM_RANGE,
                         RIGHT_WRIST_RANGE,
+                        False,
                     ),
                 ]
                 for (
@@ -192,6 +228,7 @@ def write_pose_overlay_video(video_path: Path, output_path: Path) -> Path:
                     b_range,
                     f_range,
                     w_range,
+                    wrist_supination,
                 ) in sides:
                     shoulder = px(shoulder_i)
                     elbow = px(elbow_i)
@@ -206,7 +243,7 @@ def write_pose_overlay_video(video_path: Path, output_path: Path) -> Path:
                         bicep = _to_percent(
                             _orientation_from_vertical(shoulder, elbow), *b_range
                         )
-                        _draw_label(frame, elbow, f"{prefix} Arm", bicep, color)
+                        _draw_label(frame, elbow, f"{prefix} Bicep", bicep, color)
                     if visible(shoulder_i, elbow_i, wrist_i):
                         forearm = _to_percent(
                             _angle_3pt(shoulder, elbow, wrist), *f_range
@@ -214,10 +251,31 @@ def write_pose_overlay_video(video_path: Path, output_path: Path) -> Path:
                         _draw_label(
                             frame, forearm_midpoint, f"{prefix} Forearm", forearm, color
                         )
-                    if visible(elbow_i, wrist_i, index_i):
-                        wrist_break = _to_percent(
-                            _angle_3pt(elbow, wrist, index_tip), *w_range
+                    hand_landmarks = hand_map[prefix]
+                    if hand_landmarks is not None:
+                        middle_mcp = (
+                            hand_landmarks[9].x * frame_w,
+                            hand_landmarks[9].y * frame_h,
                         )
+                        if wrist_supination:
+                            hand_wrist = (
+                                hand_landmarks[0].x * frame_w,
+                                hand_landmarks[0].y * frame_h,
+                            )
+                            wrist_angle = _orientation_from_vertical(
+                                hand_wrist, middle_mcp
+                            )
+                        else:
+                            wrist_angle = _angle_3pt(elbow, wrist, middle_mcp)
+                        wrist_break = _to_percent(wrist_angle, *w_range)
+                        _draw_label(frame, wrist, f"{prefix} Wrist", wrist_break, color)
+                    elif visible(elbow_i, wrist_i, index_i):
+                        wrist_angle = (
+                            _orientation_from_vertical(wrist, index_tip)
+                            if wrist_supination
+                            else _angle_3pt(elbow, wrist, index_tip)
+                        )
+                        wrist_break = _to_percent(wrist_angle, *w_range)
                         _draw_label(frame, wrist, f"{prefix} Wrist", wrist_break, color)
 
             writer.write(frame)
@@ -226,6 +284,7 @@ def write_pose_overlay_video(video_path: Path, output_path: Path) -> Path:
                 break
     finally:
         pose.close()
+        hands.close()
         capture.release()
         writer.release()
 
