@@ -4,8 +4,6 @@
 
 StickSplit is a guided-capture mobile app for marching drummers. Users record a practice rep in-app, and a Python analysis API processes the video using MediaPipe Pose to estimate bicep, forearm, and wrist break contribution. Results are delivered back to the app in real time via Firestore.
 
-This is a SURP-2025 research prototype. It is not a medical or biomechanics tool.
-
 ---
 
 ## Framing Rules
